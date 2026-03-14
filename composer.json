@@ -1,7 +1,7 @@
 {
 	"name": "philippoehrlein/kirby-push-notifications",
 	"description": "Kirby Push Notifications",
-	"license": "proprietary",
+	"license": "MIT",
 	"type": "kirby-plugin",
   "repository": {
     "type": "git",
@@ -15,7 +15,8 @@
 		}
 	],
 	"require": {
-		"getkirby/composer-installer": "^1.1"
+		"getkirby/composer-installer": "^1.1",
+		"minishlink/web-push": "^10.0"
 	},
 	"autoload": {
 		"psr-4": {

@@ -1,0 +1,26 @@
+# OS files
+.DS_Store
+
+# PHPUnit cache
+.phpunit.cache
+.phpunit.result.cache
+.phpunit.cache/test-results
+
+# npm modules
+/node_modules
+
+# Parcel cache folder
+.cache
+
+# Composer files
+/vendor
+
+# kirbyup temp development entry
+/index.dev.mjs
+
+# docs
+/docs/*
+ideas.md
+
+# keys
+/keys/*
