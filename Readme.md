@@ -9,9 +9,9 @@
 
 ## Features
 
-🔔 Visitors subscribe to channels
-👨‍💻 Editors send notifications from the Panel
-🚀 Developers automate via hooks
+- 🔔 Visitors subscribe to channels
+- 👨‍💻 Editors send notifications from the Panel
+- 🚀 Developers automate via hooks
 
 ## Requirements
 
