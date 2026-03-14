@@ -95,12 +95,12 @@ class DatabaseHelper
 
     /**
      * Determine the directory where the push notifications DB should live.
-     * Default: site/push-notifications/db
+     * Default: site/push-notifications
      */
     private function storageDir(): string
     {
         $root = \kirby()->root('index'); // project root
-        $default = $root . '/site/push-notifications/db';
+        $default = $root . '/site/push-notifications';
 
         $configured = option('philippoehrlein.kirby-push-notifications.db.dir');
 
@@ -157,14 +157,14 @@ class DatabaseHelper
 
     /**
      * Create the push notifications data table.
-     * Eine Zeile pro (endpoint, channel) – UNIQUE(endpoint, channel).
+     * Eine Zeile pro (endpoint, channel). Channel ist Pflicht – ohne Kanal keine Subscription.
      */
     private function createPushSubscriptionsDataTable(): void
     {
         $sql = 'CREATE TABLE IF NOT EXISTS push_subscriptions (
             id TEXT PRIMARY KEY,
             user_id TEXT NULL,
-            channel TEXT NULL,
+            channel TEXT NOT NULL,
             endpoint TEXT NOT NULL,
             keys_json TEXT NOT NULL,
             created_at TEXT NOT NULL,

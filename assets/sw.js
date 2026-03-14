@@ -1,4 +1,10 @@
-// Service Worker für Web Push im 15Habits-Setup
+/**
+ * Service Worker for Web Push Notifications
+ * @param {PushEvent} event
+ * @returns {Promise<void>}
+ * @description This is the service worker for the Web Push Notifications.
+ * It is used to handle the push events and the notification clicks.
+ */
 self.addEventListener('push', event => {
   let data = {};
   try {
@@ -6,10 +12,10 @@ self.addEventListener('push', event => {
       data = event.data.json();
     }
   } catch (e) {
-    data = { title: 'Nachricht', body: event.data && event.data.text() };
+    data = { title: 'Notification', body: event.data && event.data.text() };
   }
 
-  const title = data.title || 'Benachrichtigung';
+  const title = data.title || 'Notification';
   const options = {
     body: data.body || '',
     icon: data.icon || '/favicon.ico',

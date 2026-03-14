@@ -19,7 +19,14 @@ return [
             'channel'  => $data['channel'] ?? null,
         ];
 
-        $kirby->trigger('philippoehrlein.kirby-push-notifications.subscribe', compact('payload'));
+        try {
+            $kirby->trigger('philippoehrlein.kirby-push-notifications.subscribe', compact('payload'));
+        } catch (\Throwable $e) {
+            return [
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ];
+        }
 
         return [
             'status' => 'success',

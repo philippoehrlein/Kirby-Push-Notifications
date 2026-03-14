@@ -55,10 +55,10 @@
   globalVue.watchEffect;
   globalVue.watchPostEffect;
   globalVue.watchSyncEffect;
-  const _sfc_main$1 = /* @__PURE__ */ Vue.defineComponent({
+  const _sfc_main$2 = /* @__PURE__ */ Vue.defineComponent({
     __name: "SubscribeButton",
     props: {
-      channels: { type: Array, required: true },
+      channels: { type: [Array, null], required: false },
       icon: { type: [String, null], required: false },
       text: { type: [String, null], required: false },
       variant: { type: [String, null], required: false },
@@ -68,15 +68,25 @@
     setup(__props) {
       const props = __props;
       const panel = usePanel();
+      const buttonChannels = Vue.ref(null);
       function openSubscribeDialog() {
         panel.dialog.open({
           component: "kpn-subscribe-dialog",
           props: {
-            channels: props.channels
+            channels: buttonChannels.value
           }
         });
       }
-      return { __sfc: true, props, panel, openSubscribeDialog };
+      Vue.onMounted(async () => {
+        if (!props.channels || props.channels.length === 0) {
+          const channels = await panel.api.get("philippoehrlein/kirby-push-notifications/get-channels");
+          if (channels.status === "success") {
+            console.log(channels);
+            buttonChannels.value = channels.channels;
+          }
+        }
+      });
+      return { __sfc: true, props, panel, buttonChannels, openSubscribeDialog };
     }
   });
   function normalizeComponent(scriptExports, render, staticRenderFns, functionalTemplate, injectStyles, scopeId, moduleIdentifier, shadowMode) {
@@ -91,19 +101,19 @@
       options
     };
   }
-  var _sfc_render$1 = function render() {
+  var _sfc_render$2 = function render() {
     var _vm = this, _c = _vm._self._c, _setup = _vm._self._setupProxy;
     return _c("k-button", { attrs: { "icon": _vm.icon ?? "kpn-icon", "text": _vm.text, "variant": _vm.variant ?? "filled", "size": _vm.size ?? "sm", "title": _vm.title ?? "Toggle Notifications" }, on: { "click": _setup.openSubscribeDialog } });
   };
-  var _sfc_staticRenderFns$1 = [];
-  _sfc_render$1._withStripped = true;
-  var __component__$1 = /* @__PURE__ */ normalizeComponent(
-    _sfc_main$1,
-    _sfc_render$1,
-    _sfc_staticRenderFns$1
+  var _sfc_staticRenderFns$2 = [];
+  _sfc_render$2._withStripped = true;
+  var __component__$2 = /* @__PURE__ */ normalizeComponent(
+    _sfc_main$2,
+    _sfc_render$2,
+    _sfc_staticRenderFns$2
   );
-  __component__$1.options.__file = "/Users/philipp/Documents/02_Offen/15Habits/04 Dev/15habits-website/site/plugins/kirby-push-notifications/src/components/SubscribeButton.vue";
-  const SubscribeButton = __component__$1.exports;
+  __component__$2.options.__file = "/Users/philipp/Documents/02_Offen/Kirby Plugins/kirby-push-notifications/site/plugins/kirby-push-notifications/src/components/SubscribeButton.vue";
+  const SubscribeButton = __component__$2.exports;
   const API = "philippoehrlein/kirby-push-notifications";
   function base64UrlToArrayBuffer(base64Url) {
     const padding = "=".repeat((4 - base64Url.length % 4) % 4);
@@ -195,7 +205,7 @@
       unsubscribeEndpoint
     };
   }
-  const _sfc_main = /* @__PURE__ */ Vue.defineComponent({
+  const _sfc_main$1 = /* @__PURE__ */ Vue.defineComponent({
     __name: "SubscribeDialog",
     props: {
       channels: { type: Array, required: true }
@@ -285,7 +295,7 @@
       return { __sfc: true, props, emit, panel, push, loading, error, selectedChannels, support, supported, supportReason, channelOptions, loadInitialState, submit };
     }
   });
-  var _sfc_render = function render() {
+  var _sfc_render$1 = function render() {
     var _vm = this, _c = _vm._self._c, _setup = _vm._self._setupProxy;
     return _c("k-dialog", { ref: "dialog", attrs: { "visible": true, "size": "medium", "submit-button": !_setup.loading, "cancel-button": !_setup.loading }, on: { "cancel": function($event) {
       return _setup.emit("cancel");
@@ -297,6 +307,37 @@
       } } })], 1)];
     }, proxy: true }]) });
   };
+  var _sfc_staticRenderFns$1 = [];
+  _sfc_render$1._withStripped = true;
+  var __component__$1 = /* @__PURE__ */ normalizeComponent(
+    _sfc_main$1,
+    _sfc_render$1,
+    _sfc_staticRenderFns$1
+  );
+  __component__$1.options.__file = "/Users/philipp/Documents/02_Offen/Kirby Plugins/kirby-push-notifications/site/plugins/kirby-push-notifications/src/components/SubscribeDialog.vue";
+  const SubscribeDialog = __component__$1.exports;
+  const _sfc_main = /* @__PURE__ */ Vue.defineComponent({
+    __name: "NotificationButton",
+    props: {
+      icon: { type: [String, null], required: false },
+      text: { type: [String, null], required: false },
+      variant: { type: [String, null], required: false },
+      size: { type: [String, null], required: false },
+      title: { type: [String, null], required: false }
+    },
+    setup(__props) {
+      const props = __props;
+      const panel = usePanel();
+      function openSendNotificationDialog() {
+        panel.dialog.open("philippoehrlein/kirby-push-notifications/send-notification");
+      }
+      return { __sfc: true, props, panel, openSendNotificationDialog };
+    }
+  });
+  var _sfc_render = function render() {
+    var _vm = this, _c = _vm._self._c, _setup = _vm._self._setupProxy;
+    return _c("k-button", { attrs: { "icon": _vm.icon ?? "kpn-send", "text": _vm.text, "variant": _vm.variant ?? "filled", "size": _vm.size ?? "sm", "title": _vm.title ?? "Send Push Notification" }, on: { "click": _setup.openSendNotificationDialog } });
+  };
   var _sfc_staticRenderFns = [];
   _sfc_render._withStripped = true;
   var __component__ = /* @__PURE__ */ normalizeComponent(
@@ -304,10 +345,11 @@
     _sfc_render,
     _sfc_staticRenderFns
   );
-  __component__.options.__file = "/Users/philipp/Documents/02_Offen/15Habits/04 Dev/15habits-website/site/plugins/kirby-push-notifications/src/components/SubscribeDialog.vue";
-  const SubscribeDialog = __component__.exports;
+  __component__.options.__file = "/Users/philipp/Documents/02_Offen/Kirby Plugins/kirby-push-notifications/site/plugins/kirby-push-notifications/src/components/NotificationButton.vue";
+  const NotificationButton = __component__.exports;
   const icons = {
-    "kpn-icon": '<path d="M13.3414 4C13.1203 4.62556 13 5.29873 13 6H5V20H19V12C19.7013 12 20.3744 11.8797 21 11.6586V21C21 21.5523 20.5523 22 20 22H4C3.44772 22 3 21.5523 3 21V5C3 4.44772 3.44772 4 4 4H13.3414ZM19 8C20.1046 8 21 7.10457 21 6C21 4.89543 20.1046 4 19 4C17.8954 4 17 4.89543 17 6C17 7.10457 17.8954 8 19 8ZM19 10C16.7909 10 15 8.20914 15 6C15 3.79086 16.7909 2 19 2C21.2091 2 23 3.79086 23 6C23 8.20914 21.2091 10 19 10Z"></path>'
+    "kpn-icon": '<path d="M13.3414 4C13.1203 4.62556 13 5.29873 13 6H5V20H19V12C19.7013 12 20.3744 11.8797 21 11.6586V21C21 21.5523 20.5523 22 20 22H4C3.44772 22 3 21.5523 3 21V5C3 4.44772 3.44772 4 4 4H13.3414ZM19 8C20.1046 8 21 7.10457 21 6C21 4.89543 20.1046 4 19 4C17.8954 4 17 4.89543 17 6C17 7.10457 17.8954 8 19 8ZM19 10C16.7909 10 15 8.20914 15 6C15 3.79086 16.7909 2 19 2C21.2091 2 23 3.79086 23 6C23 8.20914 21.2091 10 19 10Z"></path>',
+    "kpn-send": '<path d="M21 7C22.6569 7 24 5.65685 24 4C24 2.34315 22.6569 1 21 1C19.3431 1 18 2.34315 18 4C18 5.65685 19.3431 7 21 7ZM22 18V8.89998C21.6769 8.96557 21.3425 9 21 9C20.6575 9 20.3231 8.96557 20 8.89998V17H5.76282L4 18.3851V5H16.1C16.0344 4.67689 16 4.34247 16 4C16 3.65753 16.0344 3.32311 16.1 3H3C2.44772 3 2 3.44772 2 4V22.5L6.45455 19H21C21.5523 19 22 18.5523 22 18Z"></path>'
   };
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register(
@@ -319,7 +361,12 @@
     icons,
     components: {
       "kpn-subscribe-button": SubscribeButton,
-      "kpn-subscribe-dialog": SubscribeDialog
+      "kpn-subscribe-dialog": SubscribeDialog,
+      "kpn-notification-button": NotificationButton
+    },
+    viewButtons: {
+      "kpn-subscribe": SubscribeButton,
+      "kpn-notification": NotificationButton
     }
   });
 })();

@@ -22,10 +22,21 @@ class SubscriptionsRepository
     }
 
     /**
-     * Eine Zeile pro (endpoint, channel). Gleicher Endpoint, mehrere Channels = mehrere Zeilen.
+     * Subscribes a user to a push notification channel.
+     * Channel is required – subscriptions without a channel are not allowed.
+     *
+     * @param string $endpoint
+     * @param array $keys
+     * @param string $channel required, non-empty
+     * @param string|null $userId
+     * @return void
      */
-    public function subscribe(string $endpoint, array $keys, ?string $userId = null, ?string $channel = null): void
+    public function subscribe(string $endpoint, array $keys, string $channel, ?string $userId = null): void
     {
+        if ($channel === '') {
+            throw new \InvalidArgumentException('Channel is required for subscription.');
+        }
+
         $now = date('c');
         $keysJson = json_encode($keys, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
@@ -54,19 +65,16 @@ class SubscriptionsRepository
                     SET user_id = :user_id,
                         keys_json = :keys_json,
                         updated_at = :updated_at
-                    WHERE endpoint = :endpoint AND ' . $this->channelWhereClause($channel);
+                    WHERE endpoint = :endpoint AND channel = :channel';
 
             $stmt = $this->db->prepare($sql);
-            $params = [
+            $stmt->execute([
                 ':user_id' => $userId,
                 ':keys_json' => $keysJson,
                 ':updated_at' => $now,
                 ':endpoint' => $endpoint,
-            ];
-            if ($channel !== null && $channel !== '') {
-                $params[':channel'] = $channel;
-            }
-            $stmt->execute($params);
+                ':channel' => $channel,
+            ]);
         }
     }
 
@@ -143,6 +151,49 @@ class SubscriptionsRepository
     }
 
     /**
+     * Listet alle Subscriptions für einen Kanal (z. B. für Besucher ohne User).
+     *
+     * @return list<array{
+     *   id: string,
+     *   user_id: ?string,
+     *   channel: ?string,
+     *   endpoint: string,
+     *   keys_json: string,
+     *   created_at: string,
+     *   updated_at: string,
+     *   last_used_at: string|null
+     * }>
+     */
+    public function listByChannel(string $channel): array
+    {
+        if ($channel === '') {
+            return [];
+        }
+
+        $sql = 'SELECT * FROM push_subscriptions
+                WHERE channel = :channel
+                ORDER BY created_at DESC';
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':channel' => $channel]);
+
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return array_map(
+            static fn(array $row): array => [
+                'id' => (string) $row['id'],
+                'user_id' => $row['user_id'] !== null ? (string) $row['user_id'] : null,
+                'channel' => $row['channel'] !== null ? (string) $row['channel'] : null,
+                'endpoint' => (string) $row['endpoint'],
+                'keys_json' => (string) $row['keys_json'],
+                'created_at' => (string) $row['created_at'],
+                'updated_at' => (string) $row['updated_at'],
+                'last_used_at' => $row['last_used_at'] !== null ? (string) $row['last_used_at'] : null,
+            ],
+            $rows
+        );
+    }
+
+    /**
      * Checks if a user is subscribed to a channel.
      *
      * @param string $userId
@@ -176,19 +227,18 @@ class SubscriptionsRepository
     }
 
     /**
-     * Eine Zeile pro (endpoint, channel).
+     * Eine Zeile pro (endpoint, channel). Channel muss gesetzt und nicht leer sein.
      *
      * @return array<string,mixed>|null
      */
-    public function findByEndpointAndChannel(string $endpoint, ?string $channel): ?array
+    public function findByEndpointAndChannel(string $endpoint, string $channel): ?array
     {
-        $sql = 'SELECT * FROM push_subscriptions WHERE endpoint = :endpoint AND ' . $this->channelWhereClause($channel) . ' LIMIT 1';
-        $stmt = $this->db->prepare($sql);
-        $params = [':endpoint' => $endpoint];
-        if ($channel !== null && $channel !== '') {
-            $params[':channel'] = $channel;
+        if ($channel === '') {
+            return null;
         }
-        $stmt->execute($params);
+
+        $stmt = $this->db->prepare('SELECT * FROM push_subscriptions WHERE endpoint = :endpoint AND channel = :channel LIMIT 1');
+        $stmt->execute([':endpoint' => $endpoint, ':channel' => $channel]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($row === false) {
@@ -196,14 +246,6 @@ class SubscriptionsRepository
         }
 
         return $this->mapRow($row);
-    }
-
-    private function channelWhereClause(?string $channel): string
-    {
-        if ($channel === null || $channel === '') {
-            return 'channel IS NULL';
-        }
-        return 'channel = :channel';
     }
 
     /**

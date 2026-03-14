@@ -9,7 +9,7 @@ return [
     if (empty($publicKey)) {
       return [
         'status' => 'error',
-        'message' => 'VAPID-Configuration is missing',
+        'message' => t('philippoehrlein.kirby-push-notifications.api.get-keys.error.no_vapid_public_key'),
         'code' => 400,
       ];
     }

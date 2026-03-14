@@ -1,8 +1,10 @@
 <?php
 
+use Kirby\Exception\InvalidArgumentException;
+
 /**
  * Sends a push notification to one user.
- * 
+ *
  * @param array $payload
  * @return void
  */
@@ -12,7 +14,7 @@ return function (array $payload): void {
   $channel = $payload['channel'] ?? null;
 
   if (!is_string($userId) || $userId === '' || !is_array($message) || $message === []) {
-    return;
+    throw new InvalidArgumentException(t('philippoehrlein.kirby-push-notifications.hooks.error.invalid_payload'));
   }
 
   $notifier = new \KirbyPushNotifications\Services\Notifier();

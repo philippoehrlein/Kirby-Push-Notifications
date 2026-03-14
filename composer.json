@@ -1,6 +1,6 @@
 {
 	"name": "philippoehrlein/kirby-push-notifications",
-	"description": "Kirby Push Notifications",
+	"description": "Wrapper for Web Push Notifications",
 	"license": "MIT",
 	"type": "kirby-plugin",
   "repository": {
@@ -15,7 +15,7 @@
 		}
 	],
 	"require": {
-		"getkirby/composer-installer": "^1.1",
+		"getkirby/composer-installer": "^1.2",
 		"minishlink/web-push": "^10.0"
 	},
 	"autoload": {

@@ -10,4 +10,5 @@ return [
     'privateKey' => null,
     'subject' => null,
   ],
+  'channels' => []
 ];

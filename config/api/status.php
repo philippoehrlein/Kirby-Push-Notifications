@@ -24,15 +24,17 @@ return [
     $endpoint = $query['endpoint'] ?? null;
     $channel = $query['channel'] ?? null;
 
-    if (!is_string($endpoint) || $endpoint === '') {
+    if (!is_string($endpoint) || $endpoint === '' || !is_string($channel) || $channel === '') {
       return [
-        'status' => 'success',
+        'status' => 'error',
+        'message' => t('philippoehrlein.kirby-push-notifications.api.status.error.invalid_endpoint_or_channel'),
+        'code' => 400,
         'subscribed' => false,
       ];
     }
 
     $repo = new SubscriptionsRepository();
-    $row = $repo->findByEndpointAndChannel($endpoint, is_string($channel) && $channel !== '' ? $channel : null);
+    $row = $repo->findByEndpointAndChannel($endpoint, $channel);
 
     $isSubscribed = $row !== null && $row['user_id'] === $user->id();
 

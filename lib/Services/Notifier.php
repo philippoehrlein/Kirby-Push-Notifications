@@ -42,5 +42,20 @@ class Notifier
             $this->notifyUser($userId, $message, $channel);
         }
     }
+
+    /**
+     * Sendet eine Benachrichtigung an alle Abonnenten eines Kanals (z. B. Besucher ohne User).
+     *
+     * @param array<string,mixed> $message
+     */
+    public function notifyByChannel(string $channel, array $message): void
+    {
+        $subs = $this->subscriptions->listByChannel($channel);
+        if ($subs === []) {
+            return;
+        }
+
+        $this->webPush->sendToSubscriptions($subs, $message);
+    }
 }
 
