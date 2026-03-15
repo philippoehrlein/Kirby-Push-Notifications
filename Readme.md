@@ -34,7 +34,7 @@ composer require philippoehrlein/kirby-push-notifications
 1. Download or clone the repo.
 2. Copy the `kirby-push-notifications` folder into `site/plugins/`.
 
-The plugin ships with its own `vendor/`, so no `composer install` in the plugin folder is needed.
+The plugin ships with its own `vendor/`, so no `composer install` in the plugin folder is needed. 
 
 ## Configuration
 
