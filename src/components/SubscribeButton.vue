@@ -10,9 +10,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
 import type { Channel } from '../types/Channel';
 import { usePanel } from 'kirbyuse';
+import { onMounted, ref } from 'vue';
 
 interface GetChannelsResponse {
   status: 'success' | 'error';
@@ -33,7 +33,7 @@ const panel = usePanel();
 const buttonChannels = ref<Channel[] | null>(null);
 
 function openSubscribeDialog() {
-  const dialog = panel.dialog.open({
+  panel.dialog.open({
     component: 'kpn-subscribe-dialog',
     props: {
       channels: buttonChannels.value,

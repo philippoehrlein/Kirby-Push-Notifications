@@ -1,6 +1,5 @@
 <template>
   <k-dialog
-    ref="dialog"
     :visible="true"
     size="medium"
     :submit-button="!loading"
@@ -32,9 +31,9 @@
 
 <script setup lang="ts">
 import type { Channel } from '../types/Channel';
-import { ref, computed, onMounted } from 'vue';
-import { usePushNotifications } from '../services/pushNotifications';
 import { usePanel } from 'kirbyuse';
+import { computed, onMounted, ref } from 'vue';
+import { usePushNotifications } from '../services/pushNotifications';
 
 const props = defineProps<{
   channels: Channel[];
@@ -101,7 +100,7 @@ async function loadInitialState(): Promise<void> {
 }
 
 async function submit(): Promise<void> {
-  if (!supported) {
+  if (!supported.value) {
     emit('cancel');
     return;
   }

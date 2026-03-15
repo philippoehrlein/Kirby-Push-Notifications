@@ -1,7 +1,7 @@
+import icons from './assets/icons.js';
+import NotificationButton from './components/NotificationButton.vue';
 import SubscribeButton from './components/SubscribeButton.vue';
 import SubscribeDialog from './components/SubscribeDialog.vue';
-import NotificationButton from './components/NotificationButton.vue';
-import icons from './assets/icons.js';
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register(

@@ -2,11 +2,17 @@
   "name": "kirby-push-notifications",
   "version": "1.0.0",
 	"description": "Web Push for Kirby: channel-based subscriptions, Panel UI, frontend dialog, hooks and API",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs",
-    "lib": "lib"
+  "author": "Philipp Oehrlein <github@philippoehrlein.de>",
+  "license": "MIT",
+  "homepage": "https://github.com/philippoehrlein/kirby-push-notifications#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/philippoehrlein/kirby-push-notifications.git"
   },
+  "bugs": {
+    "url": "https://github.com/philippoehrlein/kirby-push-notifications/issues"
+  },
+  "main": "index.js",
   "scripts": {
     "dev": "npx kirbyup src/index.js --watch",
     "serve": "npx kirbyup serve src/index.js",
@@ -23,15 +29,5 @@
     "kirbyuse": "^1.3.0",
     "prettier": "^3.5.3",
     "vite": "^5.4.2"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/philippoehrlein/kirby-push-notifications.git"
-  },
-  "author": "Philipp Oehrlein <github@philippoehrlein.de>",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/philippoehrlein/kirby-push-notifications/issues"
-  },
-  "homepage": "https://github.com/philippoehrlein/kirby-push-notifications#readme"
+  }
 }

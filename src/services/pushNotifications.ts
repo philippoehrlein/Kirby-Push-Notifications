@@ -74,7 +74,7 @@ export function usePushNotifications() {
     const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
     if (!sub) {
-      const keys = await panel.api.get(API + '/get-keys');
+      const keys = await panel.api.get(`${API}/get-keys`);
       if (keys.status !== 'success') throw new Error((keys as { message?: string }).message ?? 'VAPID keys failed.');
       sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
@@ -94,17 +94,17 @@ export function usePushNotifications() {
 
   async function isSubscribedForCurrentUser(channel: string, endpoint?: string): Promise<boolean> {
     if (!endpoint) return false;
-    const res = await panel.api.get(API + '/status', { channel, endpoint });
+    const res = await panel.api.get(`${API}/status`, { channel, endpoint });
     return res.status === 'success' && Boolean(res.subscribed);
   }
 
   async function subscribeChannel(endpoint: string, keys: Record<string, string>, channel: string): Promise<void> {
-    const res = await panel.api.post(API + '/subscribe', { endpoint, keys, channel });
+    const res = await panel.api.post(`${API}/subscribe`, { endpoint, keys, channel });
     if (res?.status !== 'success') throw new Error((res as { message?: string })?.message ?? 'Subscribe failed.');
   }
 
   async function unsubscribeEndpoint(endpoint: string): Promise<void> {
-    const res = await panel.api.post(API + '/unsubscribe', { endpoint });
+    const res = await panel.api.post(`${API}/unsubscribe`, { endpoint });
     if (res?.status !== 'success') throw new Error((res as { message?: string })?.message ?? 'Unsubscribe failed.');
   }
 

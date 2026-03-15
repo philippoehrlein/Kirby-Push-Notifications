@@ -12,7 +12,7 @@
 <script setup lang="ts">
 import { usePanel } from 'kirbyuse';
 
-const props = defineProps<{
+defineProps<{
   icon?: string | null;
   text?: string | null;
   variant?: string | null;
@@ -26,7 +26,7 @@ function openSendNotificationDialog() {
   const uuid = panel.view.props.model.uuid ?? null;
   panel.dialog.open('philippoehrlein/push-notifications/send-notification', {
     query: {
-      uuid: uuid,
+      uuid,
     },
   });
 }
