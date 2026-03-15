@@ -1,7 +1,7 @@
 # Kirby Push Notifications
 
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-1.0.1-blue)
+![Version](https://img.shields.io/badge/version-1.0.2-blue)
 
 **Kirby Push Notifications** is a plugin for [Kirby CMS](https://getkirby.com/) that adds Web Push support. Visitors can subscribe to channels (e.g. “Notes”, “News”), and you can send notifications from the Panel or via hooks. Subscriptions are stored in SQLite; sending is powered by the [minishlink/web-push](https://github.com/web-push-libs/web-push-php) library with VAPID authentication.
 
