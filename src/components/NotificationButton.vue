@@ -23,10 +23,10 @@ defineProps<{
 const panel = usePanel();
 
 function openSendNotificationDialog() {
-  const uuid = panel.view.props.model.uuid ?? null;
+  const uuid = panel.view?.props?.model?.uuid ?? null;
   panel.dialog.open('philippoehrlein/push-notifications/send-notification', {
     query: {
-      uuid,
+      uuid: uuid ?? null,
     },
   });
 }

@@ -8,10 +8,11 @@ return [
     'pattern' => 'philippoehrlein/push-notifications/send-notification',
     'load' => function () {
         $uuid = get('uuid');
-        $url = null;
+        $url = '';
+        
         if (Str::startsWith($uuid, 'page://')) {
             $url = $uuid;
-        } else if (Str::startsWith($uuid, 'site://')) {
+        } else  {
             $url = site()->homePage()->uuid()->toString();
         }
 
@@ -27,7 +28,7 @@ return [
         $languages = $subscriptionsRepo->getLanguages();
 
         $value = [
-            'url' => $url ?? null,
+            'url' => $url ?? '',
         ];
 
         $titleField = [
