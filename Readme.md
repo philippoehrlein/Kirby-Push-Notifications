@@ -173,8 +173,8 @@ Example: send a push when a note is published:
 |------|----------|
 | `philippoehrlein.push-notifications.subscribe` | After a subscription is created (payload: endpoint, keys, channel, user_id). |
 | `philippoehrlein.push-notifications.unsubscribe` | After unsubscription (payload: endpoint and/or user_id, channel). |
-| `philippoehrlein.push-notifications.send-to-one` | Send to one user (payload: user_id, message, channel?, options?). |
-| `philippoehrlein.push-notifications.send-to-many` | Send to many users or to a full channel (payload: message, user_ids?, channel?, options?). |
+| `philippoehrlein.push-notifications.send-to-one` | Send to one user (payload: user_id, message, channel, language?, options?). |
+| `philippoehrlein.push-notifications.send-to-many` | Send to many users or to a full channel (payload: message, user_ids?, channel?, language?,  options?). |
 
 ### Payload for send hooks
 
