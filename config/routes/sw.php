@@ -4,7 +4,7 @@ use Kirby\Filesystem\Mime;
 use Kirby\Http\Response;
 
 return [
-  'pattern' => 'kpn-sw.js',
+  'pattern' => 'push-notifications-sw.js',
   'method' => 'GET',
   'action' => function () {
     $root = dirname(__DIR__, 2) . '/assets/';

@@ -4,7 +4,7 @@ use Kirby\Cms\App;
 use KirbyPushNotifications\Repositories\SubscriptionsRepository;
 
 return [
-  'pattern' => 'philippoehrlein/kirby-push-notifications/status',
+  'pattern' => 'philippoehrlein/push-notifications/status',
   'method' => 'GET',
   'action' => function () {
     /** @var App $kirby */
@@ -27,7 +27,7 @@ return [
     if (!is_string($endpoint) || $endpoint === '' || !is_string($channel) || $channel === '') {
       return [
         'status' => 'error',
-        'message' => t('philippoehrlein.kirby-push-notifications.api.status.error.invalid_endpoint_or_channel'),
+        'message' => t('philippoehrlein.push-notifications.api.status.error.invalid_endpoint_or_channel'),
         'code' => 400,
         'subscribed' => false,
       ];

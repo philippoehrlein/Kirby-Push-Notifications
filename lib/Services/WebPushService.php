@@ -69,7 +69,7 @@ class WebPushService
 
             if (!$report->isSuccess()) {
                 error_log(sprintf(
-                    '[kirby-push-notifications] Push failed for %s: %s',
+                    '[push-notifications] Push failed for %s: %s',
                     $endpoint,
                     $report->getReason()
                 ));
@@ -77,9 +77,14 @@ class WebPushService
         }
     }
 
+    /**
+     * Creates a WebPush object from the plugin options.
+     *
+     * @return WebPush
+     */
     private function createWebPushFromOptions(): WebPush
     {
-        $options = option('philippoehrlein.kirby-push-notifications', []);
+        $options = option('philippoehrlein.push-notifications', []);
         $vapid = $options['vapid'] ?? [];
 
         $subject = $vapid['subject'] ?? null;
@@ -87,7 +92,7 @@ class WebPushService
         $privateKey = $vapid['privateKey'] ?? null;
 
         if (empty($subject) || empty($publicKey) || empty($privateKey)) {
-            throw new \RuntimeException('VAPID-Konfiguration für kirby-push-notifications ist unvollständig (subject/publicKey/privateKey).');
+            throw new \RuntimeException('VAPID Configuration for push-notifications is incomplete (subject/publicKey/privateKey).');
         }
 
         $auth = [
@@ -98,10 +103,7 @@ class WebPushService
             ],
         ];
 
-        // Default-Options can be extended via Plugin-Options later
-        $defaultOptions = [
-            // z.B. 'TTL' => 300,
-        ];
+        $defaultOptions = $options['webPush'];
 
         return new WebPush($auth, $defaultOptions);
     }

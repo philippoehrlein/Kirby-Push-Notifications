@@ -3,7 +3,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 
-**Kirby Push Notifications** is a plugin for [Kirby CMS](https://getkirby.com/) that adds Web Push support. Visitors can subscribe to channels (e.g. “Notes”, “News”), and you can send notifications from the Panel or via hooks. Subscriptions are stored in SQLite; sending uses [minishlink/web-push](https://github.com/web-push-libs/web-push-php) and VAPID.
+**Kirby Push Notifications** is a plugin for [Kirby CMS](https://getkirby.com/) that adds Web Push support. Visitors can subscribe to channels (e.g. “Notes”, “News”), and you can send notifications from the Panel or via hooks. Subscriptions are stored in SQLite; sending is powered by the [minishlink/web-push](https://github.com/web-push-libs/web-push-php) library with VAPID authentication.
 
 ![Cover Kirby Push Notifications](.github/kirby-push-notifications-cover.png)
 
@@ -42,7 +42,7 @@ In `site/config/config.php` (or a separate config file):
 
 ```php
 return [
-    'philippoehrlein.kirby-push-notifications' => [
+    'philippoehrlein.push-notifications' => [
         'vapid' => [
             'publicKey'  => 'your-vapid-public-key',
             'privateKey' => 'your-vapid-private-key',
@@ -65,6 +65,15 @@ return [
         //     'name' => 'push_notifications',
         //     'dir'  => 'site/push-notifications',
         // ],
+        // optional: Web Push default options (TTL, contentType, batchSize, etc.)
+        // 'webPush' => [
+        //     'contentType' => 'application/json',
+        //     'TTL' => 3600,
+        //     'urgency' => null,
+        //     'topic' => null,
+        //     'batchSize' => 1000,
+        //     'requestConcurrency' => 100,
+        // ],
     ],
 ];
 ```
@@ -74,6 +83,10 @@ return [
 Web Push requires a VAPID key pair. Set `vapid.publicKey`, `vapid.privateKey` and `vapid.subject` (your site URL, e.g. `https://yourdomain.com`). Keep the private key secret.
 
 **Generating keys:** Use the [Create VAPID keys](https://github.com/web-push-libs/web-push-php?tab=readme-ov-file#create-vapid-keys) section in the web-push-php README (OpenSSL in bash or `VAPID::createVapidKeys()` in PHP).
+
+### Option webPush
+
+Optional: Set global defaults for all push sends with the `webPush` option. Keys: `contentType` (e.g. `application/json`), `TTL` (seconds, e.g. 3600), `urgency`, `topic`, `batchSize`, `requestConcurrency`. Usually `urgency` and `topic` are left `null` here and set per send via the hook payload (see [Payload for send hooks](#payload-for-send-hooks)). You can still set global defaults if needed.
 
 ## Usage
 
@@ -123,7 +136,7 @@ If you don’t want the dialog (e.g. a single button with fixed channels, or you
 
 The plugin ships with two **view buttons** (`kpn-subscribe`, `kpn-notification`), two **button components** (`kpn-subscribe-button`, `kpn-notification-button`) and one **dialog** (`kpn-subscribe-dialog`). Register and place them in your Panel blueprints or views where needed. That’s enough to let logged-in users subscribe/unsubscribe and to send a notification (channel, title, body) without building your own UI. See `src/index.js` and `src/components/` for how they’re wired.
 
-![Panel dialof for sending notifications](.github/kirby-push-notifications-send.png)
+![Panel dialog for sending notifications](.github/kirby-push-notifications-send.png)
 
 #### Custom: Your own UI with hooks and API
 
@@ -136,7 +149,7 @@ Example: send a push when a note is published:
 'hooks' => [
     'page.changeStatus:after' => function ($newPage, $oldPage) {
         if ($newPage->intendedTemplate() === 'note' && $newPage->status() === 'listed') {
-            kirby()->trigger('philippoehrlein.kirby-push-notifications.send-to-many', [
+            kirby()->trigger('philippoehrlein.push-notifications.send-to-many', [
                 'payload' => [
                     'message' => [
                         'title' => kirby()->site()->title()->value(),
@@ -144,6 +157,7 @@ Example: send a push when a note is published:
                         'data'  => ['url' => $newPage->url()],
                     ],
                     'channel' => 'notes',
+                    'options' => ['urgency' => 'normal'],
                 ],
             ]);
         }
@@ -157,15 +171,29 @@ Example: send a push when a note is published:
 
 | Hook | Use case |
 |------|----------|
-| `philippoehrlein.kirby-push-notifications.subscribe` | After a subscription is created (payload: endpoint, keys, channel, user_id). |
-| `philippoehrlein.kirby-push-notifications.unsubscribe` | After unsubscription (payload: endpoint and/or user_id, channel). |
-| `philippoehrlein.kirby-push-notifications.send-to-one` | Send to one user (payload: user_id, message, channel). |
-| `philippoehrlein.kirby-push-notifications.send-to-many` | Send to many users or to a full channel (payload: message, user_ids?, channel). |
+| `philippoehrlein.push-notifications.subscribe` | After a subscription is created (payload: endpoint, keys, channel, user_id). |
+| `philippoehrlein.push-notifications.unsubscribe` | After unsubscription (payload: endpoint and/or user_id, channel). |
+| `philippoehrlein.push-notifications.send-to-one` | Send to one user (payload: user_id, message, channel?, options?). |
+| `philippoehrlein.push-notifications.send-to-many` | Send to many users or to a full channel (payload: message, user_ids?, channel?, options?). |
+
+### Payload for send hooks
+
+For **send-to-one** and **send-to-many**, the payload can include an optional **`options`** array with Web Push options for that send:
+
+- **`urgency`**: Delivery priority – `'very-low'`, `'low'`, `'normal'`, `'high'`. Affects delivery timing and presentation (e.g. sound, vibration).
+- **`topic`**: Optional. When set, push services may replace older notifications with the same topic by newer ones (collapse). Whether and when to use e.g. the channel as topic is up to you (e.g. `'topic' => $channel` for one notification per channel).
+- **`TTL`**: Optional, time-to-live in seconds for this message.
+
+Example: `'options' => ['urgency' => 'high', 'TTL' => 600]`.
 
 ## Routes and API
 
-- **Frontend (public):** `POST /kpn/subscribe`, `POST /kpn/unsubscribe`, `GET /kpn-sw.js` (service worker), `GET /assets/kpn/helper.js`.
-- **Panel API:** `philippoehrlein/kirby-push-notifications/*` (subscribe, unsubscribe, get-channels, get-keys, status, etc.).
+- **Frontend (public):**
+  - `POST /push-notifications/subscribe` — Body: `endpoint`, `keys`, `channel`. Param: `lang` (optional).
+  - `POST /push-notifications/unsubscribe`
+  - `GET /push-notifications-sw.js` (service worker)
+  - `GET /assets/kpn/helper.js`
+- **Panel API:** `philippoehrlein/push-notifications/*` (subscribe, unsubscribe, get-channels, get-keys, status, etc.).
 
 ## License
 

@@ -11,9 +11,10 @@ use Kirby\Exception\InvalidArgumentException;
 return function (array $payload): void {
   $endpoint = $payload['endpoint'] ?? null;
   $keys = $payload['keys'] ?? null;
-
+  $lang = $payload['lang'] ?? null;
+  
   if (!is_string($endpoint) || $endpoint === '' || !is_array($keys) || $keys === []) {
-    throw new InvalidArgumentException(t('philippoehrlein.kirby-push-notifications.hooks.error.invalid_payload'));
+    throw new InvalidArgumentException(t('philippoehrlein.push-notifications.hooks.error.invalid_payload'));
   }
 
   $userId = isset($payload['user_id']) && is_string($payload['user_id']) && $payload['user_id'] !== ''
@@ -24,6 +25,16 @@ return function (array $payload): void {
     ? $payload['channel']
     : null;
 
+  if ($channel === null) {
+    throw new InvalidArgumentException(t('philippoehrlein.push-notifications.hooks.error.invalid_payload'));
+  }
+
+  $channels = option('philippoehrlein.push-notifications.channels', []);
+  $allowedValues = is_array($channels) ? array_column($channels, 'value') : [];
+  if ($allowedValues !== [] && !in_array($channel, $allowedValues, true)) {
+    throw new InvalidArgumentException(t('philippoehrlein.push-notifications.hooks.error.invalid_channel'));
+  }
+
   $repo = new \KirbyPushNotifications\Repositories\SubscriptionsRepository();
-  $repo->subscribe($endpoint, $keys, $channel, $userId);
+  $repo->subscribe($endpoint, $keys, $channel, $lang, $userId);
 };

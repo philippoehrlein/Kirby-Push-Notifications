@@ -18,7 +18,7 @@
         <k-checkboxes-field
           v-else
           name="channels"
-          :label="panel.t('philippoehrlein.kirby-push-notifications.panel.notifications.subscribe.label')"
+          :label="panel.t('philippoehrlein.push-notifications.panel.notifications.subscribe.label')"
           :options="channelOptions"
           :value="selectedChannels"
           :disabled="loading"
@@ -117,7 +117,7 @@ async function submit(): Promise<void> {
 
     if (!endpoint || !keys) {
       error.value = panel.t(
-        'philippoehrlein.kirby-push-notifications.panel.notifications.error.no_endpoint_or_keys'
+        'philippoehrlein.push-notifications.panel.notifications.error.no_endpoint_or_keys'
       );
       loading.value = false;
       return;

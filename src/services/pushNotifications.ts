@@ -5,7 +5,7 @@ import { usePanel } from 'kirbyuse';
 
 // --- API base (Panel) ---
 
-const API = 'philippoehrlein/kirby-push-notifications';
+const API = 'philippoehrlein/push-notifications';
 
 // --- Util ---
 

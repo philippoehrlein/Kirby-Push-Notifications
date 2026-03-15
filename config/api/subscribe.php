@@ -3,24 +3,26 @@
 use Kirby\Cms\App;
 
 return [
-    'pattern' => 'philippoehrlein/kirby-push-notifications/subscribe',
+    'pattern' => 'philippoehrlein/push-notifications/subscribe',
     'method'  => 'POST',
     'action'  => function () {
         /** @var App $kirby */
         $kirby = kirby();
 
         $data = $kirby->request()->body()->toArray();
-
         $user = $kirby->user();
+        $lang = $user->language() ?? null;
+
         $payload = [
             'endpoint' => $data['endpoint'] ?? null,
             'keys'     => $data['keys'] ?? null,
             'user_id'  => $data['user_id'] ?? ($user !== null ? $user->id() : null),
             'channel'  => $data['channel'] ?? null,
+            'lang'     => $lang,
         ];
 
         try {
-            $kirby->trigger('philippoehrlein.kirby-push-notifications.subscribe', compact('payload'));
+            $kirby->trigger('philippoehrlein.push-notifications.subscribe', compact('payload'));
         } catch (\Throwable $e) {
             return [
                 'status'  => 'error',

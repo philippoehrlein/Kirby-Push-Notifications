@@ -1,15 +1,15 @@
 <?php
 
 return [
-    'pattern' => 'philippoehrlein/kirby-push-notifications/get-channels',
+    'pattern' => 'philippoehrlein/push-notifications/get-channels',
     'method' => 'GET',
     'action' => function () {
-        $channels = option('philippoehrlein.kirby-push-notifications.channels');
+        $channels = option('philippoehrlein.push-notifications.channels');
 
         if (empty($channels)) {
             return [
                 'status' => 'error',
-                'message' => t('philippoehrlein.kirby-push-notifications.api.get-channels.error.no_channels_configured'),
+                'message' => t('philippoehrlein.push-notifications.api.get-channels.error.no_channels_configured'),
                 'code' => 400,
             ];
         }

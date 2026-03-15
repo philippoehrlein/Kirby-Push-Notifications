@@ -17,7 +17,7 @@ return function (array $payload): void {
   $hasUserId = is_string($userId) && $userId !== '';
 
   if (!$hasEndpoint && !$hasUserId) {
-    throw new InvalidArgumentException(t('philippoehrlein.kirby-push-notifications.hooks.error.missing_endpoint_or_user'));
+    throw new InvalidArgumentException(t('philippoehrlein.push-notifications.hooks.error.missing_endpoint_or_user'));
   }
 
   $repo = new \KirbyPushNotifications\Repositories\SubscriptionsRepository();

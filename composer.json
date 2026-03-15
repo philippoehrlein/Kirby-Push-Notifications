@@ -1,6 +1,6 @@
 {
 	"name": "philippoehrlein/kirby-push-notifications",
-	"description": "Wrapper for Web Push Notifications",
+	"description": "Web Push for Kirby: channel-based subscriptions, Panel UI, frontend dialog, hooks and API",
 	"license": "MIT",
 	"type": "kirby-plugin",
   "repository": {

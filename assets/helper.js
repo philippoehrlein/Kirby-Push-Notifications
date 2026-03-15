@@ -33,7 +33,7 @@
   async function getSubscription(createIfMissing) {
     const config = getConfig();
     const vapidPublicKey = config.vapidPublicKey || '';
-    const swPath = config.swPath || '/kpn-sw.js';
+    const swPath = config.swPath || '/push-notifications-sw.js';
 
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
     const reg = await navigator.serviceWorker.register(swPath, { scope: '/' });
@@ -59,7 +59,7 @@
    */
   async function subscribe(channels) {
     const config = getConfig();
-    const subscribeUrl = config.subscribeUrl || '/kpn/subscribe';
+    const subscribeUrl = config.subscribeUrl || '/push-notifications/subscribe';
     const vapidPublicKey = config.vapidPublicKey || '';
 
     if (!vapidPublicKey) throw createError('noVapid', 'KPN_CONFIG.vapidPublicKey missing');
@@ -96,7 +96,7 @@
    */
   async function unsubscribe() {
     const config = getConfig();
-    const unsubscribeUrl = config.unsubscribeUrl || '/kpn/unsubscribe';
+    const unsubscribeUrl = config.unsubscribeUrl || '/push-notifications/unsubscribe';
 
     const subscription = await getSubscription(false);
     if (subscription) {

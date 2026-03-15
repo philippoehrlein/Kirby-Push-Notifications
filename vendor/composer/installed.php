@@ -1,6 +1,6 @@
 <?php return array(
     'root' => array(
-        'name' => 'philippoehrlein/kirby-push-notifications',
+        'name' => 'philippoehrlein/push-notifications',
         'pretty_version' => '1.0.0',
         'version' => '1.0.0.0',
         'reference' => null,
@@ -64,7 +64,7 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
-        'philippoehrlein/kirby-push-notifications' => array(
+        'philippoehrlein/push-notifications' => array(
             'pretty_version' => '1.0.0',
             'version' => '1.0.0.0',
             'reference' => null,

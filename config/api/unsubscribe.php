@@ -3,7 +3,7 @@
 use Kirby\Cms\App;
 
 return [
-  'pattern' => 'philippoehrlein/kirby-push-notifications/unsubscribe',
+  'pattern' => 'philippoehrlein/push-notifications/unsubscribe',
   'method'  => 'POST',
   'action'  => function () {
     /** @var App $kirby */
@@ -18,7 +18,7 @@ return [
     ];
 
     try {
-      $kirby->trigger('philippoehrlein.kirby-push-notifications.unsubscribe', compact('payload'));
+      $kirby->trigger('philippoehrlein.push-notifications.unsubscribe', compact('payload'));
     } catch (\Throwable $e) {
       return [
         'status'  => 'error',

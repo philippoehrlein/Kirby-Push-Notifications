@@ -1,11 +1,17 @@
 <?php
-$channels = $data['channels'] ?? kirby()->option('philippoehrlein.kirby-push-notifications.channels');
-$headline = $data['headline'] ?? t('philippoehrlein.kirby-push-notifications.panel.dialog.title');
-$description = $data['description'] ?? t('philippoehrlein.kirby-push-notifications.panel.dialog.description');
-$vapidPublicKey = option('philippoehrlein.kirby-push-notifications.vapid.publicKey');
-$subscribeUrl = '/kpn/subscribe';
-$unsubscribeUrl = '/kpn/unsubscribe';
-$swPath = '/kpn-sw.js';
+$languages = kirby()->languages();
+
+$channels = $data['channels'] ?? kirby()->option('philippoehrlein.push-notifications.channels');
+$headline = $data['headline'] ?? t('philippoehrlein.push-notifications.panel.dialog.title');
+$description = $data['description'] ?? t('philippoehrlein.push-notifications.panel.dialog.description');
+$vapidPublicKey = option('philippoehrlein.push-notifications.vapid.publicKey');
+if($languages->count() > 1) {
+  $subscribeUrl = '/push-notifications/subscribe/lang:'.$languages->first()->code();
+} else {
+  $subscribeUrl = '/push-notifications/subscribe';
+}
+$unsubscribeUrl = '/push-notifications/unsubscribe';
+$swPath = '/push-notifications-sw.js';
 ?>
 <script>
 window.KPN_CONFIG = {
@@ -14,16 +20,16 @@ window.KPN_CONFIG = {
   unsubscribeUrl: <?= json_encode($unsubscribeUrl) ?>,
   swPath: <?= json_encode($swPath) ?>,
   messages: {
-    noVapid: <?= json_encode(t('philippoehrlein.kirby-push-notifications.panel.dialog.message.error.no_vapid_public_key')) ?>,
-    noChannels: <?= json_encode(t('philippoehrlein.kirby-push-notifications.panel.dialog.message.error.no_channels_selected')) ?>,
-    browserNotSupported: <?= json_encode(t('philippoehrlein.kirby-push-notifications.panel.dialog.message.error.browser_not_supported')) ?>,
-    notificationsBlocked: <?= json_encode(t('philippoehrlein.kirby-push-notifications.panel.dialog.message.error.notifications_blocked')) ?>,
-    notificationsNotGranted: <?= json_encode(t('philippoehrlein.kirby-push-notifications.panel.dialog.message.error.notifications_not_granted')) ?>,
-    subscriptionFailed: <?= json_encode(t('philippoehrlein.kirby-push-notifications.panel.dialog.message.error.subscription_failed')) ?>,
-    subscriptionFailedMessage: <?= json_encode(t('philippoehrlein.kirby-push-notifications.panel.dialog.message.error.subscription_failed_message')) ?>,
-    subscriptionSuccess: <?= json_encode(t('philippoehrlein.kirby-push-notifications.panel.dialog.message.success.subscription_success')) ?>,
-    unsubscriptionFailed: <?= json_encode(t('philippoehrlein.kirby-push-notifications.panel.dialog.message.error.unsubscription_failed_message')) ?>,
-    unsubscriptionSuccess: <?= json_encode(t('philippoehrlein.kirby-push-notifications.panel.dialog.message.success.unsubscription_success_message')) ?>
+    noVapid: <?= json_encode(t('philippoehrlein.push-notifications.panel.dialog.message.error.no_vapid_public_key')) ?>,
+    noChannels: <?= json_encode(t('philippoehrlein.push-notifications.panel.dialog.message.error.no_channels_selected')) ?>,
+    browserNotSupported: <?= json_encode(t('philippoehrlein.push-notifications.panel.dialog.message.error.browser_not_supported')) ?>,
+    notificationsBlocked: <?= json_encode(t('philippoehrlein.push-notifications.panel.dialog.message.error.notifications_blocked')) ?>,
+    notificationsNotGranted: <?= json_encode(t('philippoehrlein.push-notifications.panel.dialog.message.error.notifications_not_granted')) ?>,
+    subscriptionFailed: <?= json_encode(t('philippoehrlein.push-notifications.panel.dialog.message.error.subscription_failed')) ?>,
+    subscriptionFailedMessage: <?= json_encode(t('philippoehrlein.push-notifications.panel.dialog.message.error.subscription_failed_message')) ?>,
+    subscriptionSuccess: <?= json_encode(t('philippoehrlein.push-notifications.panel.dialog.message.success.subscription_success')) ?>,
+    unsubscriptionFailed: <?= json_encode(t('philippoehrlein.push-notifications.panel.dialog.message.error.unsubscription_failed_message')) ?>,
+    unsubscriptionSuccess: <?= json_encode(t('philippoehrlein.push-notifications.panel.dialog.message.success.unsubscription_success_message')) ?>
   }
 };
 </script>
@@ -51,18 +57,18 @@ window.KPN_CONFIG = {
       </main>
       <footer class="kpn-dialog-footer">
         <button id="kpn-dialog-subscribe" class="kpn-dialog-button kpn-dialog-button--subscribe" tabindex="0" type="button">
-          <?= t('philippoehrlein.kirby-push-notifications.panel.dialog.subscribe.label') ?>
+          <?= t('philippoehrlein.push-notifications.panel.dialog.subscribe.label') ?>
         </button>
         <button id="kpn-dialog-unsubscribe" class="kpn-dialog-button kpn-dialog-button--unsubscribe" tabindex="0" type="button">
-          <?= t('philippoehrlein.kirby-push-notifications.panel.dialog.unsubscribe.label') ?>
+          <?= t('philippoehrlein.push-notifications.panel.dialog.unsubscribe.label') ?>
         </button>
       </footer>
     </div>
   </dialog>
   <button 
     id="kpn-button" 
-    title="<?= t('philippoehrlein.kirby-push-notifications.panel.dialog.button.label') ?>"
-    aria-label="<?= t('philippoehrlein.kirby-push-notifications.panel.dialog.button.label') ?>">
+    title="<?= t('philippoehrlein.push-notifications.panel.dialog.button.label') ?>"
+    aria-label="<?= t('philippoehrlein.push-notifications.panel.dialog.button.label') ?>">
     <?= $slot ?>
   </button>
 </div>

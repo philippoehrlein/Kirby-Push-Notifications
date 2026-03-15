@@ -16,6 +16,7 @@
 /index.dev.mjs
 
 # docs
+/docs
 /docs/*
 ideas.md
 

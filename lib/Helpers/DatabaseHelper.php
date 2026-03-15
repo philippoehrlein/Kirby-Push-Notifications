@@ -102,7 +102,7 @@ class DatabaseHelper
         $root = \kirby()->root('index'); // project root
         $default = $root . '/site/push-notifications';
 
-        $configured = option('philippoehrlein.kirby-push-notifications.db.dir');
+        $configured = option('philippoehrlein.push-notifications.db.dir');
 
         return is_string($configured) && $configured !== '' ? $configured : $default;
     }
@@ -113,7 +113,7 @@ class DatabaseHelper
      */
     private function databaseName(): string
     {
-        $configured = option('philippoehrlein.kirby-push-notifications.db.name');
+        $configured = option('philippoehrlein.push-notifications.db.name');
 
         return is_string($configured) && $configured !== '' ? $configured : 'push_notifications.db';
     }
@@ -165,6 +165,7 @@ class DatabaseHelper
             id TEXT PRIMARY KEY,
             user_id TEXT NULL,
             channel TEXT NOT NULL,
+            lang TEXT NULL,
             endpoint TEXT NOT NULL,
             keys_json TEXT NOT NULL,
             created_at TEXT NOT NULL,

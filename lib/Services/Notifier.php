@@ -4,6 +4,12 @@ namespace KirbyPushNotifications\Services;
 
 use KirbyPushNotifications\Repositories\SubscriptionsRepository;
 
+/**
+ * Service for sending notifications.
+ * 
+ * @author Philipp Oehrlein
+ * @version 1.0.0
+ */
 class Notifier
 {
     private SubscriptionsRepository $subscriptions;
@@ -16,46 +22,54 @@ class Notifier
     }
 
     /**
-     * Sendet eine Benachrichtigung an einen User (optional kanalgefiltert).
+     * Sends a notification to a user (optional channel and language filtered).
      *
      * @param array<string,mixed> $message
+     * @param array<string,mixed> $options
+     * @param string|null $channel
+     * @param string|null $lang Optional. When set, only subscriptions with this language or lang IS NULL receive the notification.
      */
-    public function notifyUser(string $userId, array $message, ?string $channel = null): void
+    public function notifyUser(string $userId, array $message, array $options = [], ?string $channel = null, ?string $lang = null): void
     {
-        $subs = $this->subscriptions->listByUser($userId, $channel);
+        $subs = $this->subscriptions->listByUser($userId, $channel, $lang);
         if ($subs === []) {
             return;
         }
 
-        $this->webPush->sendToSubscriptions($subs, $message);
+        $this->webPush->sendToSubscriptions($subs, $message, $options);
     }
 
     /**
-     * Sendet eine Benachrichtigung an mehrere User.
+     * Sends a notification to multiple users.
      *
      * @param list<string> $userIds
      * @param array<string,mixed> $message
+     * @param array<string,mixed> $options
+     * @param string|null $channel
+     * @param string|null $lang Optional. When set, only subscriptions with this language or lang IS NULL receive the notification.
      */
-    public function notifyMany(array $userIds, array $message, ?string $channel = null): void
+    public function notifyMany(array $userIds, array $message, array $options = [], ?string $channel = null, ?string $lang = null): void
     {
         foreach ($userIds as $userId) {
-            $this->notifyUser($userId, $message, $channel);
+            $this->notifyUser($userId, $message, $options, $channel, $lang);
         }
     }
 
     /**
-     * Sendet eine Benachrichtigung an alle Abonnenten eines Kanals (z. B. Besucher ohne User).
+     * Sends a notification to all subscribers of a channel (e.g. anonymous visitors).
      *
      * @param array<string,mixed> $message
+     * @param array<string,mixed> $options
+     * @param string|null $lang Optional. When set, only subscriptions with this language or lang IS NULL receive the notification.
      */
-    public function notifyByChannel(string $channel, array $message): void
+    public function notifyByChannel(string $channel, array $message, array $options = [], ?string $lang = null): void
     {
-        $subs = $this->subscriptions->listByChannel($channel);
+        $subs = $this->subscriptions->listByChannel($channel, $lang);
         if ($subs === []) {
             return;
         }
 
-        $this->webPush->sendToSubscriptions($subs, $message);
+        $this->webPush->sendToSubscriptions($subs, $message, $options);
     }
 }
 

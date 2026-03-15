@@ -31,7 +31,7 @@ class SubscriptionsRepository
      * @param string|null $userId
      * @return void
      */
-    public function subscribe(string $endpoint, array $keys, string $channel, ?string $userId = null): void
+    public function subscribe(string $endpoint, array $keys, string $channel, ?string $lang = null, ?string $userId = null): void
     {
         if ($channel === '') {
             throw new \InvalidArgumentException('Channel is required for subscription.');
@@ -45,9 +45,9 @@ class SubscriptionsRepository
         if ($existing === null) {
             $id = Uuid::generate();
             $sql = 'INSERT INTO push_subscriptions (
-                id, user_id, channel, endpoint, keys_json, created_at, updated_at, last_used_at
+                id, user_id, channel, lang, endpoint, keys_json, created_at, updated_at, last_used_at
             ) VALUES (
-                :id, :user_id, :channel, :endpoint, :keys_json, :created_at, :updated_at, NULL
+                :id, :user_id, :channel, :lang, :endpoint, :keys_json, :created_at, :updated_at, NULL
             )';
 
             $stmt = $this->db->prepare($sql);
@@ -55,6 +55,7 @@ class SubscriptionsRepository
                 ':id' => $id,
                 ':user_id' => $userId,
                 ':channel' => $channel,
+                ':lang' => $lang,
                 ':endpoint' => $endpoint,
                 ':keys_json' => $keysJson,
                 ':created_at' => $now,
@@ -63,6 +64,7 @@ class SubscriptionsRepository
         } else {
             $sql = 'UPDATE push_subscriptions
                     SET user_id = :user_id,
+                        lang = :lang,
                         keys_json = :keys_json,
                         updated_at = :updated_at
                     WHERE endpoint = :endpoint AND channel = :channel';
@@ -70,6 +72,7 @@ class SubscriptionsRepository
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':user_id' => $userId,
+                ':lang' => $lang,
                 ':keys_json' => $keysJson,
                 ':updated_at' => $now,
                 ':endpoint' => $endpoint,
@@ -78,12 +81,25 @@ class SubscriptionsRepository
         }
     }
 
+    /**
+     * Unsubscribes a user from a push notification channel by endpoint.
+     *
+     * @param string $endpoint
+     * @return void
+     */
     public function unsubscribeByEndpoint(string $endpoint): void
     {
         $stmt = $this->db->prepare('DELETE FROM push_subscriptions WHERE endpoint = :endpoint');
         $stmt->execute([':endpoint' => $endpoint]);
     }
 
+    /**
+     * Unsubscribes a user from a push notification channel by user ID.
+     *
+     * @param string $userId
+     * @param string|null $channel
+     * @return void
+     */
     public function unsubscribeByUser(string $userId, ?string $channel = null): void
     {
         if ($channel === null || $channel === '') {
@@ -102,6 +118,7 @@ class SubscriptionsRepository
     }
 
     /**
+     * @param string|null $lang Optional. When set, only subscriptions with this language or lang IS NULL are returned.
      * @return list<array{
      *   id: string,
      *   user_id: ?string,
@@ -113,22 +130,27 @@ class SubscriptionsRepository
      *   last_used_at: string|null
      * }>
      */
-    public function listByUser(string $userId, ?string $channel = null): array
+    public function listByUser(string $userId, ?string $channel = null, ?string $lang = null): array
     {
         if ($channel === null || $channel === '') {
             $sql = 'SELECT * FROM push_subscriptions
-                    WHERE user_id = :user_id
-                    ORDER BY created_at DESC';
+                    WHERE user_id = :user_id';
             $params = [':user_id' => $userId];
         } else {
             $sql = 'SELECT * FROM push_subscriptions
-                    WHERE user_id = :user_id AND channel = :channel
-                    ORDER BY created_at DESC';
+                    WHERE user_id = :user_id AND channel = :channel';
             $params = [
                 ':user_id' => $userId,
                 ':channel' => $channel,
             ];
         }
+
+        if ($lang !== null && $lang !== '') {
+            $sql .= ' AND (lang IS NULL OR lang = :lang)';
+            $params[':lang'] = $lang;
+        }
+
+        $sql .= ' ORDER BY created_at DESC';
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -140,6 +162,7 @@ class SubscriptionsRepository
                 'id' => (string) $row['id'],
                 'user_id' => $row['user_id'] !== null ? (string) $row['user_id'] : null,
                 'channel' => $row['channel'] !== null ? (string) $row['channel'] : null,
+                'lang' => $row['lang'] !== null ? (string) $row['lang'] : null,
                 'endpoint' => (string) $row['endpoint'],
                 'keys_json' => (string) $row['keys_json'],
                 'created_at' => (string) $row['created_at'],
@@ -151,8 +174,9 @@ class SubscriptionsRepository
     }
 
     /**
-     * Listet alle Subscriptions für einen Kanal (z. B. für Besucher ohne User).
+     * Lists all subscriptions for a channel (e.g. for anonymous visitors).
      *
+     * @param string|null $lang Optional. When set, only subscriptions with this language or lang IS NULL are returned.
      * @return list<array{
      *   id: string,
      *   user_id: ?string,
@@ -164,17 +188,24 @@ class SubscriptionsRepository
      *   last_used_at: string|null
      * }>
      */
-    public function listByChannel(string $channel): array
+    public function listByChannel(string $channel, ?string $lang = null): array
     {
         if ($channel === '') {
             return [];
         }
 
-        $sql = 'SELECT * FROM push_subscriptions
-                WHERE channel = :channel
-                ORDER BY created_at DESC';
+        $sql = 'SELECT * FROM push_subscriptions WHERE channel = :channel';
+        $params = [':channel' => $channel];
+
+        if ($lang !== null && $lang !== '') {
+            $sql .= ' AND (lang IS NULL OR lang = :lang)';
+            $params[':lang'] = $lang;
+        }
+
+        $sql .= ' ORDER BY created_at DESC';
+
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([':channel' => $channel]);
+        $stmt->execute($params);
 
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
@@ -182,6 +213,7 @@ class SubscriptionsRepository
             static fn(array $row): array => [
                 'id' => (string) $row['id'],
                 'user_id' => $row['user_id'] !== null ? (string) $row['user_id'] : null,
+                'lang' => $row['lang'] !== null ? (string) $row['lang'] : null,
                 'channel' => $row['channel'] !== null ? (string) $row['channel'] : null,
                 'endpoint' => (string) $row['endpoint'],
                 'keys_json' => (string) $row['keys_json'],
@@ -227,7 +259,11 @@ class SubscriptionsRepository
     }
 
     /**
-     * Eine Zeile pro (endpoint, channel). Channel muss gesetzt und nicht leer sein.
+     * Finds a subscription by endpoint and channel.
+     * Channel is required – subscriptions without a channel are not allowed.
+     *
+     * @param string $endpoint
+     * @param string $channel
      *
      * @return array<string,mixed>|null
      */
@@ -258,12 +294,26 @@ class SubscriptionsRepository
             'id' => (string) $row['id'],
             'user_id' => $row['user_id'] !== null ? (string) $row['user_id'] : null,
             'channel' => $row['channel'] !== null ? (string) $row['channel'] : null,
+            'lang' => $row['lang'] !== null ? (string) $row['lang'] : null,
             'endpoint' => (string) $row['endpoint'],
             'keys_json' => (string) $row['keys_json'],
             'created_at' => (string) $row['created_at'],
             'updated_at' => (string) $row['updated_at'],
             'last_used_at' => $row['last_used_at'] !== null ? (string) $row['last_used_at'] : null,
         ];
+    }
+
+    /**
+     * Returns all languages with subscriptions.
+     *
+     * @return list<string>
+     */
+    public function getLanguages(): array
+    {
+        $stmt = $this->db->prepare('SELECT DISTINCT lang FROM push_subscriptions WHERE lang IS NOT NULL');
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return array_map(static fn(array $row): string => (string) $row['lang'], $rows);
     }
 }
 

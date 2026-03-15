@@ -20,4 +20,4 @@ $plugin = [
   'version' => '1.0.0',
 ];
 
-Kirby::plugin('philippoehrlein/kirby-push-notifications', $plugin);
+Kirby::plugin('philippoehrlein/push-notifications', $plugin);

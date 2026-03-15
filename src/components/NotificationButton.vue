@@ -23,6 +23,11 @@ const props = defineProps<{
 const panel = usePanel();
 
 function openSendNotificationDialog() {
-  panel.dialog.open('philippoehrlein/kirby-push-notifications/send-notification');
+  const uuid = panel.view.props.model.uuid ?? null;
+  panel.dialog.open('philippoehrlein/push-notifications/send-notification', {
+    query: {
+      uuid: uuid,
+    },
+  });
 }
 </script>

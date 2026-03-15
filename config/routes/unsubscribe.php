@@ -1,7 +1,7 @@
 <?php
 
 return [
-  'pattern' => 'kpn/unsubscribe',
+  'pattern' => 'push-notifications/unsubscribe',
   'method' => 'POST',
   'action' => function () {
     $kirby = kirby();
@@ -11,7 +11,7 @@ return [
     ];
 
     try {
-      $kirby->trigger('philippoehrlein.kirby-push-notifications.unsubscribe', compact('payload'));
+      $kirby->trigger('philippoehrlein.push-notifications.unsubscribe', compact('payload'));
     } catch (\Throwable $e) {
       return [
         'status'  => 'error',

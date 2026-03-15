@@ -5,12 +5,12 @@ import icons from './assets/icons.js';
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register(
-    '/kpn-sw.js',
+    '/push-notifications-sw.js',
     { scope: '/' }
   );
 }
 
-window.panel.plugin('philippoehrlein/kirby-push-notifications', {
+window.panel.plugin('philippoehrlein/push-notifications', {
   icons,
   components: {
     'kpn-subscribe-button': SubscribeButton,

@@ -10,5 +10,13 @@ return [
     'privateKey' => null,
     'subject' => null,
   ],
-  'channels' => []
+  'channels' => [],
+  'webPush' => [
+    'contentType' => 'application/json',
+    'TTL' => 3600,
+    'urgency' => null,
+    'topic' => null,
+    'batchSize' => 1000,
+    'requestConcurrency' => 100,
+  ],
 ];

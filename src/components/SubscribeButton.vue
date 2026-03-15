@@ -43,9 +43,8 @@ function openSubscribeDialog() {
 
 onMounted(async () => {
   if (!props.channels || props.channels.length === 0) {
-    const channels = await panel.api.get<GetChannelsResponse>('philippoehrlein/kirby-push-notifications/get-channels');
+    const channels = await panel.api.get<GetChannelsResponse>('philippoehrlein/push-notifications/get-channels');
     if (channels.status === 'success') {
-      console.log(channels);
       buttonChannels.value = channels.channels;
     }
   }

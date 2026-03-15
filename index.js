@@ -79,9 +79,8 @@
       }
       Vue.onMounted(async () => {
         if (!props.channels || props.channels.length === 0) {
-          const channels = await panel.api.get("philippoehrlein/kirby-push-notifications/get-channels");
+          const channels = await panel.api.get("philippoehrlein/push-notifications/get-channels");
           if (channels.status === "success") {
-            console.log(channels);
             buttonChannels.value = channels.channels;
           }
         }
@@ -114,7 +113,7 @@
   );
   __component__$2.options.__file = "/Users/philipp/Documents/02_Offen/Kirby Plugins/kirby-push-notifications/site/plugins/kirby-push-notifications/src/components/SubscribeButton.vue";
   const SubscribeButton = __component__$2.exports;
-  const API = "philippoehrlein/kirby-push-notifications";
+  const API = "philippoehrlein/push-notifications";
   function base64UrlToArrayBuffer(base64Url) {
     const padding = "=".repeat((4 - base64Url.length % 4) % 4);
     const base64 = (base64Url + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -272,7 +271,7 @@
           const keys = json.keys;
           if (!endpoint || !keys) {
             error.value = panel.t(
-              "philippoehrlein.kirby-push-notifications.panel.notifications.error.no_endpoint_or_keys"
+              "philippoehrlein.push-notifications.panel.notifications.error.no_endpoint_or_keys"
             );
             loading.value = false;
             return;
@@ -302,7 +301,7 @@
     }, "submit": function($event) {
       return _setup.submit();
     } }, scopedSlots: _vm._u([{ key: "default", fn: function() {
-      return [_setup.loading ? _c("div", [_c("k-icon-frame", { attrs: { "icon": "loader", "ratio": "2/1" } })], 1) : _c("div", [_setup.error ? _c("k-box", { attrs: { "text": _setup.error, "theme": "negative" } }) : !_setup.supported ? _c("k-box", { attrs: { "text": _setup.supportReason, "theme": "warning" } }) : _c("k-checkboxes-field", { attrs: { "name": "channels", "label": _setup.panel.t("philippoehrlein.kirby-push-notifications.panel.notifications.subscribe.label"), "options": _setup.channelOptions, "value": _setup.selectedChannels, "disabled": _setup.loading, "counter": false }, on: { "input": function($event) {
+      return [_setup.loading ? _c("div", [_c("k-icon-frame", { attrs: { "icon": "loader", "ratio": "2/1" } })], 1) : _c("div", [_setup.error ? _c("k-box", { attrs: { "text": _setup.error, "theme": "negative" } }) : !_setup.supported ? _c("k-box", { attrs: { "text": _setup.supportReason, "theme": "warning" } }) : _c("k-checkboxes-field", { attrs: { "name": "channels", "label": _setup.panel.t("philippoehrlein.push-notifications.panel.notifications.subscribe.label"), "options": _setup.channelOptions, "value": _setup.selectedChannels, "disabled": _setup.loading, "counter": false }, on: { "input": function($event) {
         _setup.selectedChannels = $event;
       } } })], 1)];
     }, proxy: true }]) });
@@ -329,7 +328,12 @@
       const props = __props;
       const panel = usePanel();
       function openSendNotificationDialog() {
-        panel.dialog.open("philippoehrlein/kirby-push-notifications/send-notification");
+        const uuid = panel.view.props.model.uuid ?? null;
+        panel.dialog.open("philippoehrlein/push-notifications/send-notification", {
+          query: {
+            uuid
+          }
+        });
       }
       return { __sfc: true, props, panel, openSendNotificationDialog };
     }
@@ -353,11 +357,11 @@
   };
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register(
-      "/kpn-sw.js",
+      "/push-notifications-sw.js",
       { scope: "/" }
     );
   }
-  window.panel.plugin("philippoehrlein/kirby-push-notifications", {
+  window.panel.plugin("philippoehrlein/push-notifications", {
     icons,
     components: {
       "kpn-subscribe-button": SubscribeButton,
