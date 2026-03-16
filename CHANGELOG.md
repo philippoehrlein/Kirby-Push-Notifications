@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.1.0] - 2026-03-16
 
 ### Added
-- **Examples:** Added `simple-subscribe-button` (Starterkit example with a single “Subscribe to Notes” button) and `exception-notifications` (project-level example for sending error pushes from the `system.exception` hook with rate limiting).
+- **Examples:** Added `note-approval-workflow` (editorial approval flow for notes), `simple-subscribe-button` (Starterkit example with a single “Subscribe to Notes” button) and `exception-notifications` (project-level example for sending error pushes from the `system.exception` hook with rate limiting).
 
 ### Changed
 - **Configuration:** `channels` option can now be flat or grouped into `panel`/`website`; the `get-channels` API normalizes both shapes.
