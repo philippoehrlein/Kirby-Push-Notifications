@@ -1,7 +1,7 @@
 # Kirby Push Notifications
 
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-1.0.3-blue)
+![Version](https://img.shields.io/badge/version-1.1.0-blue)
 
 **Kirby Push Notifications** is a plugin for [Kirby CMS](https://getkirby.com/) that adds Web Push support. Visitors can subscribe to channels (e.g. “Notes”, “News”), and you can send notifications from the Panel or via hooks. Subscriptions are stored in SQLite; sending is powered by the [minishlink/web-push](https://github.com/web-push-libs/web-push-php) library with VAPID authentication.
 
@@ -49,16 +49,25 @@ return [
             'subject'    => 'https://yourdomain.com',
         ],
         'channels' => [
-            [
-                'value' => 'notes',
-                'text'  => 'Notes',
-                'info'  => 'Receive new notes',
+            'panel' => [
+                [
+                    'value' => 'note-approval',
+                    'text' => 'Note Approval',
+                    'info' => 'Get informed when a note is waiting for approval',
+                ]
             ],
-            [
-                'value' => 'photos',
-                'text'  => 'Photography',
-                'info'  => 'Receive the latest Photo series',
-            ],
+            'website' => [
+                [
+                    'value' => 'notes',
+                    'text'  => 'Notes',
+                    'info'  => 'Receive new notes',
+                ],
+                [
+                    'value' => 'photos',
+                    'text'  => 'Photography',
+                    'info'  => 'Receive the latest Photo series',
+                ],
+            ]
         ],
         // optional: change DB location
         // 'db' => [
@@ -75,6 +84,33 @@ return [
         //     'requestConcurrency' => 100,
         // ],
     ],
+];
+```
+
+> Note
+Defining channels in the plugin options is optional. It is only required if you want to use the built‑in subscription UIs that read channels from the config (like kpn-dialog). If you use the helper script (helper.js), panel buttons or your own custom UI, you can pass channel names directly in your code without configuring them in channels.
+
+#### Alternative: flat channels (no panel/website groups)
+By default, you can configure channels in two groups (`panel` and `website`) so the Panel groups them visually. Channels in the website group are exposed to the frontend snippet, while panel channels are only available inside the Panel.
+If you don’t need this distinction, you can also use a flat list of channels.
+
+```php
+// site/config/config.php
+return [
+  'philippoehrlein.push-notifications' => [
+    'channels' => [
+      [
+        'value' => 'news',
+        'text'  => 'News',
+        'info'  => 'General website updates',
+      ],
+      [
+        'value' => 'notes',
+        'text'  => 'Notes',
+        'info'  => 'New notes and articles',
+      ],
+    ],
+  ],
 ];
 ```
 

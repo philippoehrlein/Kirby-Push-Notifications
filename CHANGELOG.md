@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.0] - 2026-03-16
+
+### Added
+- **Examples:** Added `simple-subscribe-button` (Starterkit example with a single “Subscribe to Notes” button) and `exception-notifications` (project-level example for sending error pushes from the `system.exception` hook with rate limiting).
+
+### Changed
+- **Configuration:** `channels` option can now be flat or grouped into `panel`/`website`; the `get-channels` API normalizes both shapes.
+- **Docs:** Clarified that defining `channels` in plugin options is optional and mainly needed for config-driven UIs like `kpn-dialog`; custom UIs, helper.js and Panel buttons can pass channels directly.
+- **Panel & dialog UX:** Improved subscribe button and dialog behavior, including better channel typing and labels.
+- **Translations:** Updated English and German strings to match the new configuration and UI texts.
+
 ## [1.0.0] - 2026-03-14
 
 ### Initial Release

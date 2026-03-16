@@ -10,6 +10,8 @@ return [
 
   'philippoehrlein.push-notifications.panel.notifications.error.no_endpoint_or_keys' => 'No endpoint or keys found',
   'philippoehrlein.push-notifications.panel.notifications.subscribe.label' => 'Subscribe',
+  'philippoehrlein.push-notifications.panel.notifications.subscribe.panel.label' => 'Panel Notifications',
+  'philippoehrlein.push-notifications.panel.notifications.subscribe.website.label' => 'Website Notifications',
 
   'philippoehrlein.push-notifications.panel.send-notification.title.label' => 'Title',
   'philippoehrlein.push-notifications.panel.send-notification.body.label' => 'Body',

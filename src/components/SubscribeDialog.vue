@@ -14,23 +14,45 @@
       <div v-else>
         <k-box v-if="error" :text="error" theme="negative" />
         <k-box v-else-if="!supported" :text="supportReason" theme="warning" />
-        <k-checkboxes-field
-          v-else
-          name="channels"
-          :label="panel.t('philippoehrlein.push-notifications.panel.notifications.subscribe.label')"
-          :options="channelOptions"
-          :value="selectedChannels"
-          :disabled="loading"
-          :counter="false"
-          @input="selectedChannels = $event"
-        />
+        <div v-else>
+          <k-checkboxes-field
+            v-if="uiChannels.length > 0"
+            name="channels"
+            :label="panel.t('philippoehrlein.push-notifications.panel.notifications.subscribe.label')"
+            :options="uiChannels"
+            :value="selectedChannels"
+            :disabled="loading"
+            :counter="false"
+            @input="selectedChannels = $event"
+          />
+          <div v-else-if="defaultChannels" class="kpn-dialog-channels">
+            <k-checkboxes-field
+              name="channels"
+              :label="panel.t('philippoehrlein.push-notifications.panel.notifications.subscribe.panel.label')"
+              :options="defaultChannels.panel"
+              :value="selectedChannels"
+              :disabled="loading"
+              :counter="false"
+              @input="selectedChannels = $event"
+            />
+            <k-checkboxes-field
+              name="channels"
+              :label="panel.t('philippoehrlein.push-notifications.panel.notifications.subscribe.website.label')"
+              :options="defaultChannels.website"
+              :value="selectedChannels"
+              :disabled="loading"
+              :counter="false"
+              @input="selectedChannels = $event"
+            />
+          </div>
+        </div>
       </div>
     </template>
   </k-dialog>
 </template>
 
 <script setup lang="ts">
-import type { Channel } from '../types/Channel';
+import type { Channel, Channels } from '../types/Channel';
 import { usePanel } from 'kirbyuse';
 import { computed, onMounted, ref } from 'vue';
 import { usePushNotifications } from '../services/pushNotifications';
@@ -47,9 +69,24 @@ const emit = defineEmits<{
 const panel = usePanel();
 const push = usePushNotifications();
 
-const loading = ref(true);
+const loading = ref(false);
 const error = ref<string | null>(null);
 const selectedChannels = ref<string[]>([]);
+const uiChannels = ref<Channel[]>(props.channels ?? []);
+const defaultChannels = ref<Channels | null>(null);
+
+const availableChannels = computed<Channel[]>(() => {
+  if (uiChannels.value && uiChannels.value.length > 0) {
+    return uiChannels.value;
+  }
+  if (defaultChannels.value) {
+    return [
+      ...(defaultChannels.value.panel || []),
+      ...(defaultChannels.value.website || []),
+    ];
+  }
+  return [];
+});
 
 const support = computed(() => push.checkSupport());
 const supported = computed(() => support.value.supported);
@@ -57,9 +94,6 @@ const supportReason = computed(() =>
   support.value.supported ? '' : (support.value as { reason: string }).reason
 );
 
-const channelOptions = computed(() =>
-  props.channels.map((c) => ({ value: c.value, text: c.text }))
-);
 
 async function loadInitialState(): Promise<void> {
   loading.value = true;
@@ -84,16 +118,15 @@ async function loadInitialState(): Promise<void> {
       loading.value = false;
       return;
     }
-
     const subscribed: string[] = [];
-    for (const ch of props.channels) {
+    for (const ch of availableChannels.value) {
       const isSub = await push.isSubscribedForCurrentUser(ch.value, endpoint);
       if (isSub) subscribed.push(ch.value);
     }
     selectedChannels.value = subscribed;
   } catch (e: unknown) {
-    console.error('[kpn] Fehler beim Laden der Abos:', e);
-    error.value = e instanceof Error ? e.message : 'Unbekannter Fehler';
+    console.error('[kpn] Error loading subscriptions:', e);
+    error.value = e instanceof Error ? e.message : 'Unknown error';
   } finally {
     loading.value = false;
   }
@@ -130,14 +163,35 @@ async function submit(): Promise<void> {
 
     emit('submit');
   } catch (e: unknown) {
-    console.error('[kpn] Fehler beim Speichern:', e);
-    error.value = e instanceof Error ? e.message : 'Unbekannter Fehler';
+    console.error('[kpn] Error saving:', e);
+    error.value = e instanceof Error ? e.message : 'Unknown error';
   } finally {
     loading.value = false;
   }
 }
 
-onMounted(() => {
-  loadInitialState();
+async function loadDefaultChannels(): Promise<void> {
+  const response = await panel.api.get('philippoehrlein/push-notifications/get-channels');
+  if (response.status === 'success') {
+    const ch = response.channels;
+    if(Array.isArray(ch)) {
+      uiChannels.value = ch;
+    } else {
+      defaultChannels.value = ch;
+    }
+  }
+}
+onMounted(async () => {
+  if (!props.channels || props.channels.length === 0) await loadDefaultChannels();
+  await loadInitialState();
 });
 </script>
+
+
+<style scoped>
+.kpn-dialog-channels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+</style>

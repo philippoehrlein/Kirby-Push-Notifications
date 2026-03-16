@@ -29,12 +29,6 @@ return function (array $payload): void {
     throw new InvalidArgumentException(t('philippoehrlein.push-notifications.hooks.error.invalid_payload'));
   }
 
-  $channels = option('philippoehrlein.push-notifications.channels', []);
-  $allowedValues = is_array($channels) ? array_column($channels, 'value') : [];
-  if ($allowedValues !== [] && !in_array($channel, $allowedValues, true)) {
-    throw new InvalidArgumentException(t('philippoehrlein.push-notifications.hooks.error.invalid_channel'));
-  }
-
   $repo = new \KirbyPushNotifications\Repositories\SubscriptionsRepository();
   $repo->subscribe($endpoint, $keys, $channel, $lang, $userId);
 };

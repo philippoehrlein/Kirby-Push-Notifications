@@ -4,6 +4,8 @@
     :text="text"
     :variant="variant ?? 'filled'"
     :size="size ?? 'sm'"
+    :theme="theme"
+    :disabled="disabled ?? false"
     :title="title ?? 'Toggle Notifications'"
     @click="openSubscribeDialog"
   />
@@ -12,13 +14,6 @@
 <script setup lang="ts">
 import type { Channel } from '../types/Channel';
 import { usePanel } from 'kirbyuse';
-import { onMounted, ref } from 'vue';
-
-interface GetChannelsResponse {
-  status: 'success' | 'error';
-  message?: string;
-  channels: Channel[];
-}
 
 const props = defineProps<{
   channels?: Channel[] | null;
@@ -27,26 +22,18 @@ const props = defineProps<{
   variant?: string | null;
   size?: string | null;
   title?: string | null;
+  theme?: string | null;
+  disabled?: boolean | null;
 }>();
 
 const panel = usePanel();
-const buttonChannels = ref<Channel[] | null>(null);
 
 function openSubscribeDialog() {
   panel.dialog.open({
     component: 'kpn-subscribe-dialog',
     props: {
-      channels: buttonChannels.value,
+      channels: props.channels,
     },
   })
 }
-
-onMounted(async () => {
-  if (!props.channels || props.channels.length === 0) {
-    const channels = await panel.api.get<GetChannelsResponse>('philippoehrlein/push-notifications/get-channels');
-    if (channels.status === 'success') {
-      buttonChannels.value = channels.channels;
-    }
-  }
-});
 </script>

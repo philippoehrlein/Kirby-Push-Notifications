@@ -17,12 +17,13 @@ return [
         }
 
         $channels = option('philippoehrlein.push-notifications.channels');
+        $channelsMerged = array_merge($channels['panel'] ?? [], $channels['website'] ?? []);
         $channelOptions = array_map(function ($channel) {
             return [
                 'value' => $channel['value'],
                 'text' => $channel['text'],
             ];
-        }, $channels);
+        }, $channelsMerged);
 
         $subscriptionsRepo = new SubscriptionsRepository();
         $languages = $subscriptionsRepo->getLanguages();
