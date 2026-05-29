@@ -1,0 +1,10 @@
+title: Playground
+
+sections:
+  pages:
+    type: pages
+    template:
+      - notes
+      - exception
+      - default
+

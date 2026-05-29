@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0] - 2026-05-29
+
+### Added
+- **Development:** Local Kirby playground (`playground/`) with minimal demo site, example hooks (note approval, exception alerts) and sample VAPID configuration. Repository only — excluded from Composer/dist via `.gitattributes`. Runtime SQLite database, accounts, cache and sessions are gitignored.
+
+### Changed
+- **Panel – send notification dialog:** Shows an info message instead of the form when there are no subscriptions, so nothing can be sent unnecessarily.
+- **Panel – send notification dialog:** Channel and language fields are shown only when needed (select for multiple options, hidden field with preset value otherwise). Side-by-side layout when both selects are visible.
+- **Panel – send notification dialog:** Language options use localized display names (`locale_get_display_language`) based on the current Panel user language instead of raw language codes.
+
 ## [1.1.0] - 2026-03-16
 
 ### Added

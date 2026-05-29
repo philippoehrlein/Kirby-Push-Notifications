@@ -315,5 +315,18 @@ class SubscriptionsRepository
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         return array_map(static fn(array $row): string => (string) $row['lang'], $rows);
     }
+
+    /**
+     * Checks if there are any subscriptions.
+     *
+     * @return bool
+     */
+    public function hasSubscriptions(): bool
+    {
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM push_subscriptions');
+        $stmt->execute();
+        $count = $stmt->fetchColumn();
+        return $count > 0 && $count !== null;
+    }
 }
 

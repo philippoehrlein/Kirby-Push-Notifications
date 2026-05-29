@@ -10,6 +10,20 @@ return [
         $uuid = get('uuid');
         $url = '';
         
+        $subscriptionsRepo = new SubscriptionsRepository();
+        $hasSubscriptions = $subscriptionsRepo->hasSubscriptions();
+
+        if (!$hasSubscriptions) {
+            return [
+                'component' => 'k-text-dialog',
+                'props' => [
+                    'text' => t('philippoehrlein.push-notifications.panel.send-notification.no-subscriptions.text'),
+                    'theme' => 'info',
+                    'cancelButton' => false
+                ],
+            ];
+        }
+        
         if (Str::startsWith($uuid, 'page://')) {
             $url = $uuid;
         } else  {
@@ -25,8 +39,12 @@ return [
             ];
         }, $channelsMerged);
 
-        $subscriptionsRepo = new SubscriptionsRepository();
         $languages = $subscriptionsRepo->getLanguages();
+        $userLanguage = kirby()->user()->language() ?? 'en';
+
+        $showLanguageSelect = count($languages) > 1;
+        $showChannelSelect = count($channelOptions) > 1;
+        $selectWidth = $showLanguageSelect && $showChannelSelect ? '1/2' : '1/1';
 
         $value = [
             'url' => $url ?? '',
@@ -39,28 +57,40 @@ return [
             'maxlength' => 40,
         ];
 
-        $channelField = [
-            'type' => 'select',
-            'label' => t('philippoehrlein.push-notifications.panel.send-notification.channel.label'),
-            'required' => true,
-            'options' => $channelOptions,
-            'width' => $languages !== [] ? '1/2' : '1/1',
-        ];
+        if($showChannelSelect) {
+            $channelField = [
+                'type' => 'select',
+                'label' => t('philippoehrlein.push-notifications.panel.send-notification.channel.label'),
+                'required' => true,
+                'options' => $channelOptions,
+                'width' => $selectWidth,
+            ];
+        } else {
+            $channelField = [
+                'type' => 'hidden',
+                'value' => $channelOptions[0]['value'],
+            ];
+        }
 
-        $languageField = null;
-        if($languages !== []) {
-            $languageOptions = array_map(function ($language) {
+        if($showLanguageSelect) {
+            
+            $languageOptions = array_map(function ($language) use ($userLanguage) {
                 return [
                     'value' => $language,
-                    'text' => $language,
+                    'text' => locale_get_display_language($language, $userLanguage),
                 ];
             }, $languages);
 
             $languageField = [
                 'type' => 'select',
                 'label' => t('philippoehrlein.push-notifications.panel.send-notification.language.label'),
-                'width' => '1/2',
+                'width' => $selectWidth,
                 'options' => $languageOptions,
+            ];
+        } else {
+            $languageField = [
+                'type' => 'hidden',
+                'value' => $languages[0],
             ];
         }
 
@@ -85,9 +115,8 @@ return [
             'channel' => $channelField,
             'language' => $languageField,
             'body' => $bodyField,
-            'url' => $urlField,
+            'url' => $urlField
         ];
-
 
         return [
             'component' => 'k-form-dialog',
@@ -105,6 +134,10 @@ return [
     },
     'submit' => function () {
         $data = get();        
+
+        if($data === null || $data === []) {
+            return true;
+        }
 
         $title = $data['title'];
         $channel = $data['channel'];

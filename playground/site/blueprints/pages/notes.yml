@@ -1,0 +1,41 @@
+title: Notes
+
+buttons:
+  - kpn-subscribe
+  - kpn-notification
+  - status
+  - subscribe-notes-approve
+
+columns:
+  user:
+    width: 1/2
+    fields:
+      info:
+        label: Info
+        type: info
+        text: |
+          Add your account here to receive notifications on notes that are waiting for approval.
+
+          For more information, see [Note Approval Workflow Example](https://github.com/philippoehrlein/Kirby-Push-Notifications/tree/main/examples/note-approval-workflow) on GitHub.
+      approver:
+        type: users
+        label: Approver
+        max: 3
+  notes:
+    width: 1/2
+    sections:
+      drafts:
+        extends: sections/notes
+        label: Drafts
+        status: drafts
+      unlisted:
+        extends: sections/notes
+        label: In Review
+        status: unlisted
+      listed:
+        extends: sections/notes
+        label: Published
+        status: listed
+        size: small
+
+

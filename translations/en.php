@@ -20,6 +20,8 @@ return [
   'philippoehrlein.push-notifications.panel.send-notification.url.label' => 'Link',
   'philippoehrlein.push-notifications.panel.send-notification.submit.label' => 'Send',
 
+  'philippoehrlein.push-notifications.panel.send-notification.no-subscriptions.text' => 'There are <b>no subscriptions</b> for Push Notifications yet.',
+
   // === API ===
   'philippoehrlein.push-notifications.api.get-channels.error.no_channels_configured' => 'No channels configured',
   'philippoehrlein.push-notifications.api.get-keys.error.no_vapid_public_key' => 'VAPID configuration is missing',

@@ -1,0 +1,22 @@
+title: Exception
+
+icon: bug
+
+buttons:
+  - open
+  - kpn-subscribe
+  - status
+
+fields:
+  info:
+    label: Info
+    type: info
+    text: |
+      Open this page to trigger a Kirby exception.
+      Subscribe to **Dev Alerts** to receive a push notification when an exception occurs.
+      For more information, see [Exception Notifications Example](https://github.com/philippoehrlein/Kirby-Push-Notifications/tree/main/examples/exception-notifications) on GitHub.
+  hint:
+    type: info
+    label: Todo
+    theme: yellow
+    text: The hook will only send a push notification if the 'debug' option in the config.php file is set to false.

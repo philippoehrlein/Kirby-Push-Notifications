@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/philippoehrlein/kirby-push-notifications.git"
   },
-	"version": "1.1.0",
+	"version": "1.2.0",
 	"authors": [
 		{
 			"name": "Philipp Oehrlein",
@@ -15,17 +15,31 @@
 		}
 	],
 	"require": {
+    "php": ">=8.3.0",
 		"getkirby/composer-installer": "^1.2",
 		"minishlink/web-push": "^10.0"
 	},
+  "require-dev": {
+    "getkirby/cms": "^5.4.2"
+  },
 	"autoload": {
 		"psr-4": {
 			"KirbyPushNotifications\\": "lib/"
 		}
 	},
+  "scripts": {
+    "dev": [
+      "Composer\\Config::disableProcessTimeout",
+      "@php -S localhost:8000 -t playground/public vendor/getkirby/cms/router.php"
+    ]
+  },
 	"config": {
 		"allow-plugins": {
 			"getkirby/composer-installer": true
 		}
-	}
+	},
+  "extra": {
+    "kirby-cms-path": false,
+    "installer-name": "push-notifications"
+  }
 }

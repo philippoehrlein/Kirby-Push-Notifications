@@ -12,3 +12,7 @@ node_modules/ export-ignore
 
 # Docs and internals
 docs/ export-ignore
+
+# Playground files
+playground/ export-ignore
+vendor/getkirby/cms export-ignore

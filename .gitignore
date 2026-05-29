@@ -22,3 +22,10 @@ ideas.md
 
 # keys
 /keys/*
+
+# playground
+/playground/site/push-notifications/*
+/playground/public/media/*
+/playground/storage/accounts/*
+/playground/storage/cache/*
+/playground/storage/sessions/*
