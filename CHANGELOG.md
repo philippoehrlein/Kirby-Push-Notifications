@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.0-beta.1] - 2026-11-23
+
+### Changed
+- Support Kirby 6.0.0-rc.3 and the Vue 3 Panel. Use the 1.x plugin release line for Kirby 5.
+- Build Panel assets with kirbyup 4 and kirbyuse 2 on Node.js 24.
+
 ## [1.2.1] - 2026-11-23
 
 ### Fixed

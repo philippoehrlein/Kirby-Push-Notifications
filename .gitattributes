@@ -5,7 +5,7 @@
 
 # Frontend build (source only; built assets live in assets/)
 /src/ export-ignore
-/index.dev.mjs export-ignore
+/index.dev.* export-ignore
 /package.json export-ignore
 /package-lock.json export-ignore
 /node_modules/ export-ignore

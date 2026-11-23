@@ -1,6 +1,5 @@
 <?php
 
-use Kirby\Panel\Panel;
 use Kirby\Toolkit\Str;
 
 return [
@@ -8,7 +7,7 @@ return [
   'routes' => [
     [
       'pattern' => '/',
-      'action' => fn () => go(Panel::url('site')),
+      'action' => fn () => go(kirby()->panel()->url('site')),
     ],
   ],
   'cache' => [
@@ -19,9 +18,6 @@ return [
     'locking' => false
   ],
   'panel' => [
-    'vue' => [
-      'compiler' => false
-    ],
     'viewButtons' => [
       'page' => [
         /**
@@ -67,7 +63,7 @@ return [
       'publicKey' => 'BGX9qo1fxnyR2qbzfu9UlpP2U48jc117mCIL00orMedxgwmqi607oUbpcZYnrB_kw9jWKXWmcmK_uqLw5sPrkYQ',
       'privateKey' => 'CFxLUg3CjviWTAR339SbW_ZTHUOge5qgrlrPFdY3KJk',
       /** check if your browser supports localhost as secure origin for testing purposes */
-      'subject' => 'http://localhost:8000',
+      'subject' => 'https://github.com/philippoehrlein/Kirby-Push-Notifications',
     ],
     'channels' => [
       'panel' => [

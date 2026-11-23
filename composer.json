@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/philippoehrlein/kirby-push-notifications.git"
   },
-	"version": "1.2.1",
+	"version": "2.0.0-beta.1",
 	"authors": [
 		{
 			"name": "Philipp Oehrlein",
@@ -37,6 +37,9 @@
 	},
   "extra": {
     "kirby-cms-path": false,
+    "kirby": {
+      "compatible": ">=6.0.0-rc.3 <7.0"
+    },
     "installer-name": "push-notifications"
   }
 }

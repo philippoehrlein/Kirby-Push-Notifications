@@ -27,7 +27,7 @@ return [
         if (Str::startsWith($uuid, 'page://')) {
             $url = $uuid;
         } else  {
-            $url = site()->homePage()->uuid()->toString();
+            $url = site()->homePage()?->uuid()->toString() ?? '';
         }
 
         $channels = option('philippoehrlein.push-notifications.channels');
@@ -90,7 +90,7 @@ return [
         } else {
             $languageField = [
                 'type' => 'hidden',
-                'value' => $languages[0],
+                'value' => $languages[0] ?? null,
             ];
         }
 

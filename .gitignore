@@ -13,7 +13,7 @@
 .cache
 
 # kirbyup temp development entry
-/index.dev.mjs
+/index.dev.*
 
 # docs
 /docs
