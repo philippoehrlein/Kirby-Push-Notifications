@@ -8,6 +8,7 @@ use Jose\Component\Core\Util\Base64UrlSafe;
 use Jose\Component\Encryption\Algorithm\ContentEncryptionAlgorithm;
 use Override;
 use RuntimeException;
+use SensitiveParameter;
 use function extension_loaded;
 use function strlen;
 use const OPENSSL_RAW_DATA;
@@ -24,7 +25,7 @@ abstract readonly class AESCBCHS implements ContentEncryptionAlgorithm
     #[Override]
     public function allowedKeyTypes(): array
     {
-        return []; //Irrelevant
+        return []; // Irrelevant
     }
 
     #[Override]
@@ -50,6 +51,7 @@ abstract readonly class AESCBCHS implements ContentEncryptionAlgorithm
     #[Override]
     public function decryptContent(
         string $data,
+        #[SensitiveParameter]
         string $cek,
         string $iv,
         ?string $aad,
@@ -77,6 +79,7 @@ abstract readonly class AESCBCHS implements ContentEncryptionAlgorithm
 
     protected function calculateAuthenticationTag(
         string $encrypted_data,
+        #[SensitiveParameter]
         string $cek,
         string $iv,
         ?string $aad,
@@ -102,6 +105,7 @@ abstract readonly class AESCBCHS implements ContentEncryptionAlgorithm
 
     protected function isTagValid(
         string $encrypted_data,
+        #[SensitiveParameter]
         string $cek,
         string $iv,
         ?string $aad,

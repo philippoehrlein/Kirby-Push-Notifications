@@ -8,12 +8,14 @@ use Brick\Math\BigInteger;
 use InvalidArgumentException;
 use Jose\Component\Core\JWK;
 use Jose\Component\Core\Util\Base64UrlSafe;
+use Jose\Component\Core\Util\Ecc\BrainpoolCurve;
 use Jose\Component\Core\Util\Ecc\Curve;
 use Jose\Component\Core\Util\Ecc\EcDH;
 use Jose\Component\Core\Util\Ecc\NistCurve;
 use Jose\Component\Core\Util\Ecc\PrivateKey;
 use Jose\Component\Core\Util\ECKey;
 use Jose\Component\Encryption\Algorithm\KeyEncryption\Util\ConcatKDF;
+use OpenSSLAsymmetricKey;
 use Override;
 use RuntimeException;
 use Throwable;
@@ -83,22 +85,19 @@ abstract readonly class AbstractECDH implements KeyAgreement
             case 'P-256':
             case 'P-384':
             case 'P-521':
-                $curve = $this->getCurve($crv);
-                if (function_exists('openssl_pkey_derive')) {
-                    try {
-                        $publicPem = ECKey::convertPublicKeyToPEM($public_key);
-                        $privatePem = ECKey::convertPrivateKeyToPEM($private_key);
-
-                        $res = openssl_pkey_derive($publicPem, $privatePem);
-                        if ($res === false) {
-                            throw new RuntimeException('Unable to derive the key');
-                        }
-
-                        return $res;
-                    } catch (Throwable) {
-                        //Does nothing. Will fallback to the pure PHP function
+            case 'BP-256':
+            case 'BP-384':
+            case 'BP-512':
+                $privateKey = $this->loadPrivateKeyWithOpenSSL($private_key);
+                if ($privateKey !== null) {
+                    $res = openssl_pkey_derive(ECKey::convertPublicKeyToPEM($public_key), $privateKey);
+                    if ($res === false) {
+                        throw new RuntimeException('Unable to derive the key');
                     }
+
+                    return $res;
                 }
+                $curve = $this->getCurve($crv);
                 $x = $public_key->get('x');
                 if (! is_string($x)) {
                     throw new InvalidArgumentException('Invalid key parameter "x"');
@@ -110,6 +109,9 @@ abstract readonly class AbstractECDH implements KeyAgreement
                 $d = $private_key->get('d');
                 if (! is_string($d)) {
                     throw new InvalidArgumentException('Invalid key parameter "d"');
+                }
+                if (! $this->fitsCurve($x, $curve) || ! $this->fitsCurve($y, $curve)) {
+                    throw new RuntimeException('Unable to derive the key');
                 }
 
                 $rec_x = $this->convertBase64ToBigInteger($x);
@@ -158,7 +160,7 @@ abstract readonly class AbstractECDH implements KeyAgreement
             throw new InvalidArgumentException('Invalid key parameter "crv"');
         }
         $private_key = match ($crv) {
-            'P-256', 'P-384', 'P-521' => $senderKey ?? ECKey::createECKey($crv),
+            'P-256', 'P-384', 'P-521', 'BP-256', 'BP-384', 'BP-512' => $senderKey ?? ECKey::createECKey($crv),
             'X25519' => $senderKey ?? $this->createOKPKey('X25519'),
             default => throw new InvalidArgumentException(sprintf('The curve "%s" is not supported', $crv)),
         };
@@ -221,6 +223,9 @@ abstract readonly class AbstractECDH implements KeyAgreement
             case 'P-256':
             case 'P-384':
             case 'P-521':
+            case 'BP-256':
+            case 'BP-384':
+            case 'BP-512':
                 if (! $key->has('y')) {
                     throw new InvalidArgumentException('The key parameter "y" is missing.');
                 }
@@ -233,9 +238,35 @@ abstract readonly class AbstractECDH implements KeyAgreement
             default:
                 throw new InvalidArgumentException(sprintf('The curve "%s" is not supported', $crv));
         }
-        if ($is_private === true && ! $key->has('d')) {
+        if ($is_private && ! $key->has('d')) {
             throw new InvalidArgumentException('The key parameter "d" is missing.');
         }
+    }
+
+    /**
+     * When OpenSSL can load the private key, it computes the agreement and its refusal of the public key is final. The
+     * PHP implementation is left to the keys it cannot load and to installations without openssl_pkey_derive().
+     */
+    private function loadPrivateKeyWithOpenSSL(JWK $key): ?OpenSSLAsymmetricKey
+    {
+        if (! function_exists('openssl_pkey_derive')) {
+            return null;
+        }
+        try {
+            $privateKey = openssl_pkey_get_private(ECKey::convertPrivateKeyToPEM($key));
+        } catch (Throwable) {
+            return null;
+        }
+
+        return $privateKey === false ? null : $privateKey;
+    }
+
+    /**
+     * Without GMP, converting a coordinate to a big integer takes more than linear time in its length.
+     */
+    private function fitsCurve(string $coordinate, Curve $curve): bool
+    {
+        return strlen(ltrim(Base64UrlSafe::decodeNoPadding($coordinate), "\0")) <= (int) ceil($curve->getSize() / 8);
     }
 
     private function getCurve(string $crv): Curve
@@ -244,6 +275,9 @@ abstract readonly class AbstractECDH implements KeyAgreement
             'P-256' => NistCurve::curve256(),
             'P-384' => NistCurve::curve384(),
             'P-521' => NistCurve::curve521(),
+            'BP-256' => BrainpoolCurve::curve256(),
+            'BP-384' => BrainpoolCurve::curve384(),
+            'BP-512' => BrainpoolCurve::curve512(),
             default => throw new InvalidArgumentException(sprintf('The curve "%s" is not supported', $crv)),
         };
     }
@@ -251,7 +285,7 @@ abstract readonly class AbstractECDH implements KeyAgreement
     private function convertBase64ToBigInteger(string $value): BigInteger
     {
         $data = unpack('H*', Base64UrlSafe::decodeNoPadding($value));
-        if (! is_array($data) || ! isset($data[1]) || ! is_string($data[1])) {
+        if (! is_array($data) || ! isset($data[1]) || ! is_string($data[1]) || $data[1] === '') {
             throw new InvalidArgumentException('Unable to convert base64 to integer');
         }
 

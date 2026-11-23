@@ -9,6 +9,7 @@ use RangeException;
 use SensitiveParameter;
 use SodiumException;
 use function extension_loaded;
+use function hash_equals;
 use function pack;
 use function rtrim;
 use function sodium_base642bin;
@@ -41,7 +42,6 @@ use const SODIUM_BASE64_VARIANT_URLSAFE_NO_PADDING;
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *  SOFTWARE.
  */
-
 final readonly class Base64UrlSafe
 {
     public static function encode(#[SensitiveParameter] string $binString): string
@@ -91,14 +91,7 @@ final readonly class Base64UrlSafe
                 throw new RangeException('Incorrect padding');
             }
             if (extension_loaded('sodium')) {
-                try {
-                    return sodium_base642bin(
-                        self::safeSubstr($encodedString, 0, $srcLen),
-                        SODIUM_BASE64_VARIANT_URLSAFE_NO_PADDING
-                    );
-                } catch (SodiumException $ex) {
-                    throw new RangeException($ex->getMessage(), $ex->getCode(), $ex);
-                }
+                return self::decodeWithSodium(self::safeSubstr($encodedString, 0, $srcLen));
             }
         } else {
             $encodedString = rtrim($encodedString, '=');
@@ -117,9 +110,9 @@ final readonly class Base64UrlSafe
 
             $dest .= pack(
                 'CCC',
-                ((($c0 << 2) | ($c1 >> 4)) & 0xff),
-                ((($c1 << 4) | ($c2 >> 2)) & 0xff),
-                ((($c2 << 6) | $c3) & 0xff)
+                ((($c0 << 2) | ($c1 >> 4)) & 0xFF),
+                ((($c1 << 4) | ($c2 >> 2)) & 0xFF),
+                ((($c2 << 6) | $c3) & 0xFF)
             );
             $err |= ($c0 | $c1 | $c2 | $c3) >> 8;
         }
@@ -132,17 +125,17 @@ final readonly class Base64UrlSafe
             if ($i + 2 < $srcLen) {
                 $c1 = static::decode6Bits($chunk[2]);
                 $c2 = static::decode6Bits($chunk[3]);
-                $dest .= pack('CC', ((($c0 << 2) | ($c1 >> 4)) & 0xff), ((($c1 << 4) | ($c2 >> 2)) & 0xff));
+                $dest .= pack('CC', ((($c0 << 2) | ($c1 >> 4)) & 0xFF), ((($c1 << 4) | ($c2 >> 2)) & 0xFF));
                 $err |= ($c0 | $c1 | $c2) >> 8;
                 if ($strictPadding) {
-                    $err |= ($c2 << 6) & 0xff;
+                    $err |= ($c2 << 6) & 0xFF;
                 }
             } elseif ($i + 1 < $srcLen) {
                 $c1 = static::decode6Bits($chunk[2]);
-                $dest .= pack('C', ((($c0 << 2) | ($c1 >> 4)) & 0xff));
+                $dest .= pack('C', ((($c0 << 2) | ($c1 >> 4)) & 0xFF));
                 $err |= ($c0 | $c1) >> 8;
                 if ($strictPadding) {
-                    $err |= ($c1 << 4) & 0xff;
+                    $err |= ($c1 << 4) & 0xFF;
                 }
             } elseif ($strictPadding) {
                 $err |= 1;
@@ -167,6 +160,24 @@ final readonly class Base64UrlSafe
             }
         }
         return static::decode($encodedString, true);
+    }
+
+    /**
+     * libsodium 1.0.21 and older decode the bytes 0x80 to 0xFF as "_" where char is signed: the result is re-encoded
+     * and compared with the input in constant time, so these bytes are rejected whatever the libsodium version.
+     */
+    private static function decodeWithSodium(#[SensitiveParameter] string $encodedString): string
+    {
+        try {
+            $decoded = sodium_base642bin($encodedString, SODIUM_BASE64_VARIANT_URLSAFE_NO_PADDING);
+        } catch (SodiumException $ex) {
+            throw new RangeException($ex->getMessage(), $ex->getCode(), $ex);
+        }
+        if (! hash_equals(sodium_bin2base64($decoded, SODIUM_BASE64_VARIANT_URLSAFE_NO_PADDING), $encodedString)) {
+            throw new RangeException('Base64::decode() only expects characters in the correct base64 alphabet');
+        }
+
+        return $decoded;
     }
 
     private static function doEncode(#[SensitiveParameter] string $src, bool $pad = true): string
@@ -215,12 +226,12 @@ final readonly class Base64UrlSafe
     private static function decode6Bits(int $src): int
     {
         $ret = -1;
-        $ret += (((0x40 - $src) & ($src - 0x5b)) >> 8) & ($src - 64);
-        $ret += (((0x60 - $src) & ($src - 0x7b)) >> 8) & ($src - 70);
-        $ret += (((0x2f - $src) & ($src - 0x3a)) >> 8) & ($src + 5);
-        $ret += (((0x2c - $src) & ($src - 0x2e)) >> 8) & 63;
+        $ret += (((0x40 - $src) & ($src - 0x5B)) >> 8) & ($src - 64);
+        $ret += (((0x60 - $src) & ($src - 0x7B)) >> 8) & ($src - 70);
+        $ret += (((0x2F - $src) & ($src - 0x3A)) >> 8) & ($src + 5);
+        $ret += (((0x2C - $src) & ($src - 0x2E)) >> 8) & 63;
 
-        return $ret + ((((0x5e - $src) & ($src - 0x60)) >> 8) & 64);
+        return $ret + ((((0x5E - $src) & ($src - 0x60)) >> 8) & 64);
     }
 
     private static function encode6Bits(int $src): string

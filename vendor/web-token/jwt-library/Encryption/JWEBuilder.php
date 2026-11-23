@@ -23,6 +23,7 @@ use function array_key_exists;
 use function count;
 use function is_string;
 use function sprintf;
+use function strlen;
 
 class JWEBuilder
 {
@@ -118,12 +119,14 @@ class JWEBuilder
 
     /**
      * Set the shared protected header of the JWE to build.
+     *
+     * @param array<string, mixed> $sharedProtectedHeader
      */
     public function withSharedProtectedHeader(array $sharedProtectedHeader): self
     {
         $this->checkDuplicatedHeaderParameters($sharedProtectedHeader, $this->sharedHeader);
         foreach ($this->recipients as $recipient) {
-            $this->checkDuplicatedHeaderParameters($sharedProtectedHeader, $recipient->getHeader());
+            $this->checkDuplicatedHeaderParameters($sharedProtectedHeader, $recipient['header']);
         }
         $clone = clone $this;
         $clone->sharedProtectedHeader = $sharedProtectedHeader;
@@ -133,12 +136,14 @@ class JWEBuilder
 
     /**
      * Set the shared header of the JWE to build.
+     *
+     * @param array<string, mixed> $sharedHeader
      */
     public function withSharedHeader(array $sharedHeader): self
     {
         $this->checkDuplicatedHeaderParameters($this->sharedProtectedHeader, $sharedHeader);
         foreach ($this->recipients as $recipient) {
-            $this->checkDuplicatedHeaderParameters($sharedHeader, $recipient->getHeader());
+            $this->checkDuplicatedHeaderParameters($sharedHeader, $recipient['header']);
         }
         $clone = clone $this;
         $clone->sharedHeader = $sharedHeader;
@@ -148,6 +153,8 @@ class JWEBuilder
 
     /**
      * Adds a recipient to the JWE to build.
+     *
+     * @param array<string, mixed> $recipientHeader
      */
     public function addRecipient(JWK $recipientKey, array $recipientHeader = []): self
     {
@@ -178,26 +185,17 @@ class JWEBuilder
         return $clone;
     }
 
-    //TODO: Verify if the key is compatible with the key encryption algorithm like is done to the ECDH-ES
     /**
-     * Set the sender JWK to be used instead of the internal generated JWK
+     * Set the sender JWK to be used instead of the internal generated JWK.
+     *
+     * The sender key does not add a recipient: it takes no part in the key management mode compatibility
+     * check, otherwise a static key agreement algorithm such as ECDH-SS would be rejected as a foreign key
+     * management mode. The key itself is verified by build(), where the recipients and the content
+     * encryption algorithm are known whatever the call order is.
      */
     public function withSenderKey(JWK $senderKey): self
     {
         $clone = clone $this;
-        $completeHeader = array_merge($clone->sharedHeader, $clone->sharedProtectedHeader);
-        $keyEncryptionAlgorithm = $clone->getKeyEncryptionAlgorithm($completeHeader);
-        if ($clone->keyManagementMode === null) {
-            $clone->keyManagementMode = $keyEncryptionAlgorithm->getKeyManagementMode();
-        } else {
-            if (! $clone->areKeyManagementModesCompatible(
-                $clone->keyManagementMode,
-                $keyEncryptionAlgorithm->getKeyManagementMode()
-            )) {
-                throw new InvalidArgumentException('Foreign key management mode forbidden.');
-            }
-        }
-        $clone->checkKey($keyEncryptionAlgorithm, $senderKey);
         $clone->senderKey = $senderKey;
 
         return $clone;
@@ -214,6 +212,7 @@ class JWEBuilder
         if (count($this->recipients) === 0) {
             throw new LogicException('No recipient.');
         }
+        $this->checkSenderKey();
 
         $additionalHeader = [];
         $cek = $this->determineCEK($additionalHeader);
@@ -257,6 +256,12 @@ class JWEBuilder
         }
     }
 
+    /**
+     * The header parameters computed by the key encryption algorithm are added to the per-recipient header
+     * when there is more than one recipient. Those already set in a shared header are filtered out: the
+     * header parameter names of the three headers must be disjoint (RFC 7516 section 7.2.1), and a shared
+     * value takes precedence, as it does with a single recipient.
+     */
     private function processRecipient(array $recipient, string $cek, array &$additionalHeader): Recipient
     {
         $completeHeader = array_merge($this->sharedHeader, $recipient['header'], $this->sharedProtectedHeader);
@@ -270,10 +275,11 @@ class JWEBuilder
             $keyEncryptionAlgorithm,
             $additionalHeader,
             $recipient['key'],
-            $recipient['sender_key'] ?? $this->senderKey ?? null
+            $recipient['sender_key'] ?? $this->senderKey
         );
         $recipientHeader = $recipient['header'];
         if ((is_countable($additionalHeader) ? count($additionalHeader) : 0) !== 0 && count($this->recipients) !== 1) {
+            $additionalHeader = array_diff_key($additionalHeader, $this->sharedProtectedHeader, $this->sharedHeader);
             $recipientHeader = array_merge($recipientHeader, $additionalHeader);
             $additionalHeader = [];
         }
@@ -390,6 +396,26 @@ class JWEBuilder
         return $keyEncryptionAlgorithm->wrapKey($recipientKey, $cek, $completeHeader, $additionalHeader);
     }
 
+    /**
+     * The sender key is shared by all the recipients: it is verified against the key encryption algorithm of
+     * each of them. Nothing is done when no sender key is set or when the key encryption algorithm does not
+     * use one.
+     */
+    private function checkSenderKey(): void
+    {
+        $senderKey = $this->senderKey;
+        if ($senderKey === null) {
+            return;
+        }
+        foreach ($this->recipients as $recipient) {
+            $keyEncryptionAlgorithm = $recipient['key_encryption_algorithm'];
+            if (! $keyEncryptionAlgorithm instanceof KeyEncryptionAlgorithm) {
+                throw new InvalidArgumentException('The key encryption algorithm is not valid');
+            }
+            $this->checkKey($keyEncryptionAlgorithm, $senderKey);
+        }
+    }
+
     private function checkKey(KeyEncryptionAlgorithm $keyEncryptionAlgorithm, JWK $recipientKey): void
     {
         if ($this->contentEncryptionAlgorithm === null) {
@@ -404,6 +430,10 @@ class JWEBuilder
         }
     }
 
+    /**
+     * A key obtained by key agreement must have the size the content encryption algorithm needs, and a direct key at
+     * least that size: the content encryption algorithms pad a short key with zero bytes instead of rejecting it.
+     */
     private function determineCEK(array &$additionalHeader): string
     {
         if ($this->contentEncryptionAlgorithm === null) {
@@ -422,7 +452,7 @@ class JWEBuilder
                     );
                 }
                 $recipientKey = $this->recipients[0]['key'];
-                $senderKey = $this->recipients[0]['sender_key'] ?? null;
+                $senderKey = $this->recipients[0]['sender_key'] ?? $this->senderKey;
                 $algorithm = $this->recipients[0]['key_encryption_algorithm'];
                 if (! $algorithm instanceof KeyAgreement) {
                     throw new InvalidArgumentException('Invalid content encryption algorithm');
@@ -433,7 +463,7 @@ class JWEBuilder
                     $this->sharedProtectedHeader
                 );
 
-                return $algorithm->getAgreementKey(
+                $cek = $algorithm->getAgreementKey(
                     $this->contentEncryptionAlgorithm->getCEKSize(),
                     $this->contentEncryptionAlgorithm->name(),
                     $recipientKey,
@@ -441,6 +471,11 @@ class JWEBuilder
                     $completeHeader,
                     $additionalHeader
                 );
+                if (strlen($cek) * 8 !== $this->contentEncryptionAlgorithm->getCEKSize()) {
+                    throw new InvalidArgumentException('Invalid CEK size');
+                }
+
+                return $cek;
 
             case KeyEncryption::MODE_DIRECT:
                 if (count($this->recipients) !== 1) {
@@ -457,8 +492,12 @@ class JWEBuilder
                 if (! is_string($k)) {
                     throw new RuntimeException('Invalid key.');
                 }
+                $cek = Base64UrlSafe::decodeNoPadding($k);
+                if (mb_strlen($cek, '8bit') * 8 < $this->contentEncryptionAlgorithm->getCEKSize()) {
+                    throw new InvalidArgumentException('Invalid CEK size');
+                }
 
-                return Base64UrlSafe::decodeNoPadding($k);
+                return $cek;
 
             default:
                 throw new InvalidArgumentException(sprintf(

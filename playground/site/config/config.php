@@ -1,9 +1,16 @@
 <?php
 
+use Kirby\Panel\Panel;
 use Kirby\Toolkit\Str;
 
 return [
   'debug' => false,
+  'routes' => [
+    [
+      'pattern' => '/',
+      'action' => fn () => go(Panel::url('site')),
+    ],
+  ],
   'cache' => [
     // enables a file cache at `site/cache/kpn-exceptions`
     'kpn-exceptions' => true,

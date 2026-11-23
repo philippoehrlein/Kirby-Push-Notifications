@@ -30,19 +30,19 @@
               name="channels"
               :label="panel.t('philippoehrlein.push-notifications.panel.notifications.subscribe.panel.label')"
               :options="defaultChannels.panel"
-              :value="selectedChannels"
+              :value="panelSelection"
               :disabled="loading"
               :counter="false"
-              @input="selectedChannels = $event"
+              @input="panelSelection = $event"
             />
             <k-checkboxes-field
               name="channels"
               :label="panel.t('philippoehrlein.push-notifications.panel.notifications.subscribe.website.label')"
               :options="defaultChannels.website"
-              :value="selectedChannels"
+              :value="websiteSelection"
               :disabled="loading"
               :counter="false"
-              @input="selectedChannels = $event"
+              @input="websiteSelection = $event"
             />
           </div>
         </div>
@@ -55,6 +55,7 @@
 import type { Channel, Channels } from '../types/Channel';
 import { usePanel } from 'kirbyuse';
 import { computed, onMounted, ref } from 'vue';
+import { useChannelGroupSelection } from '../services/channelGroupSelection';
 import { usePushNotifications } from '../services/pushNotifications';
 
 const props = defineProps<{
@@ -74,6 +75,9 @@ const error = ref<string | null>(null);
 const selectedChannels = ref<string[]>([]);
 const uiChannels = ref<Channel[]>(props.channels ?? []);
 const defaultChannels = ref<Channels | null>(null);
+
+const panelSelection = useChannelGroupSelection(selectedChannels, () => defaultChannels.value?.panel);
+const websiteSelection = useChannelGroupSelection(selectedChannels, () => defaultChannels.value?.website);
 
 const availableChannels = computed<Channel[]>(() => {
   if (uiChannels.value && uiChannels.value.length > 0) {

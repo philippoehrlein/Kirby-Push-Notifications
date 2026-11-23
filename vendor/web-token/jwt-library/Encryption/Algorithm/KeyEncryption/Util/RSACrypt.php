@@ -10,8 +10,8 @@ use Jose\Component\Core\Util\Hash;
 use Jose\Component\Core\Util\RSAKey;
 use LogicException;
 use RuntimeException;
+use SensitiveParameter;
 use function chr;
-use function count;
 use function ord;
 use function strlen;
 use const STR_PAD_LEFT;
@@ -47,8 +47,13 @@ final readonly class RSACrypt
         }
     }
 
-    public static function decrypt(RSAKey $key, string $plaintext, int $mode, ?string $hash = null): string
-    {
+    public static function decrypt(
+        RSAKey $key,
+        string $plaintext,
+        int $mode,
+        ?string $hash = null,
+        ?int $expectedKeyLength = null
+    ): string {
         switch ($mode) {
             case self::ENCRYPTION_OAEP:
                 if ($hash === null) {
@@ -57,7 +62,7 @@ final readonly class RSACrypt
 
                 return self::decryptWithRSAOAEP($key, $plaintext, $hash);
             case self::ENCRYPTION_PKCS1:
-                return self::decryptWithRSA15($key, $plaintext);
+                return self::decryptWithRSA15($key, $plaintext, $expectedKeyLength);
             default:
                 throw new InvalidArgumentException('Unsupported mode.');
         }
@@ -72,8 +77,8 @@ final readonly class RSACrypt
 
         $psLen = $key->getModulusLength() - $mLen - 3;
         $ps = '';
-        while (strlen($ps) !== $psLen) {
-            $temp = random_bytes($psLen - strlen($ps));
+        while (strlen($ps) < $psLen) {
+            $temp = random_bytes(max(1, $psLen - strlen($ps)));
             $temp = str_replace("\x00", '', $temp);
             $ps .= $temp;
         }
@@ -86,7 +91,7 @@ final readonly class RSACrypt
         return self::convertIntegerToOctetString($c, $key->getModulusLength());
     }
 
-    public static function decryptWithRSA15(RSAKey $key, string $c): string
+    public static function decryptWithRSA15(RSAKey $key, string $c, ?int $expectedKeyLength = null): string
     {
         if (strlen($c) !== $key->getModulusLength()) {
             throw new InvalidArgumentException('Unable to decrypt');
@@ -94,16 +99,74 @@ final readonly class RSACrypt
         $c = BigInteger::createFromBinaryString($c);
         $m = self::getRSADP($key, $c);
         $em = self::convertIntegerToOctetString($m, $key->getModulusLength());
-        if (ord($em[0]) !== 0 || ord($em[1]) > 2) {
-            throw new InvalidArgumentException('Unable to decrypt');
-        }
-        $ps = substr($em, 2, (int) strpos($em, chr(0), 2) - 2);
-        $m = substr($em, strlen($ps) + 3);
-        if (strlen($ps) < 8) {
-            throw new InvalidArgumentException('Unable to decrypt');
+        if ($expectedKeyLength === null) {
+            if (ord($em[0]) !== 0 || ord($em[1]) > 2) {
+                throw new InvalidArgumentException('Unable to decrypt');
+            }
+            $ps = substr($em, 2, (int) strpos($em, chr(0), 2) - 2);
+            $m = substr($em, strlen($ps) + 3);
+            if (strlen($ps) < 8) {
+                throw new InvalidArgumentException('Unable to decrypt');
+            }
+
+            return $m;
         }
 
-        return $m;
+        return self::extractRSA15KeyOrRandom($em, $expectedKeyLength);
+    }
+
+    private static function extractRSA15KeyOrRandom(#[SensitiveParameter] string $em, int $expectedKeyLength): string
+    {
+        if ($expectedKeyLength < 1) {
+            throw new InvalidArgumentException('Invalid CEK length.');
+        }
+        $k = strlen($em);
+        $random = random_bytes($expectedKeyLength);
+
+        if ($k < $expectedKeyLength + 11) {
+            return $random;
+        }
+        $candidate = substr($em, $k - $expectedKeyLength);
+
+        $valid = self::ctEq(ord($em[0]), 0x00) & self::ctEq(ord($em[1]), 0x02);
+
+        $seenSeparator = 0;
+        $separatorIndex = 0;
+        $psLength = 0;
+        for ($i = 2; $i < $k; ++$i) {
+            $isZero = self::ctEq(ord($em[$i]), 0x00);
+            $firstZero = $isZero & (1 - $seenSeparator);
+            $separatorIndex |= $firstZero * $i;
+            $psLength += (1 - $seenSeparator) & (1 - $isZero);
+            $seenSeparator |= $isZero;
+        }
+
+        $valid &= $seenSeparator;
+        $valid &= self::ctGe($psLength, 8);
+
+        $messageLength = $k - $separatorIndex - 1;
+        $valid &= self::ctEq($messageLength, $expectedKeyLength);
+
+        return self::ctSelect($valid, $candidate, $random);
+    }
+
+    private static function ctEq(int $a, int $b): int
+    {
+        $diff = $a ^ $b;
+
+        return (($diff - 1) >> 63) & 1;
+    }
+
+    private static function ctGe(int $a, int $b): int
+    {
+        return (($b - $a - 1) >> 63) & 1;
+    }
+
+    private static function ctSelect(int $condition, string $a, string $b): string
+    {
+        $mask = str_repeat(chr(($condition * 0xFF) & 0xFF), strlen($a));
+
+        return ($a & $mask) | ($b & ~$mask);
     }
 
     /**
@@ -117,13 +180,11 @@ final readonly class RSACrypt
         if ($length <= 0) {
             throw new RuntimeException();
         }
-        $splitPlaintext = str_split($plaintext, $length);
-        $ciphertext = '';
-        foreach ($splitPlaintext as $m) {
-            $ciphertext .= self::encryptRSAESOAEP($key, $m, $hash);
+        if (strlen($plaintext) > $length) {
+            throw new InvalidArgumentException('Message too long');
         }
 
-        return $ciphertext;
+        return self::encryptRSAESOAEP($key, $plaintext, $hash);
     }
 
     /**
@@ -134,21 +195,15 @@ final readonly class RSACrypt
         if ($key->getModulusLength() <= 0) {
             throw new RuntimeException('Invalid modulus length');
         }
-        $hash = Hash::$hash_algorithm();
-        $splitCiphertext = str_split($ciphertext, $key->getModulusLength());
-        $splitCiphertext[count($splitCiphertext) - 1] = str_pad(
-            $splitCiphertext[count($splitCiphertext) - 1],
-            $key->getModulusLength(),
-            chr(0),
-            STR_PAD_LEFT
-        );
-        $plaintext = '';
-        foreach ($splitCiphertext as $c) {
-            $temp = self::getRSAESOAEP($key, $c, $hash);
-            $plaintext .= $temp;
+        if (strlen($ciphertext) > $key->getModulusLength()) {
+            throw new RuntimeException('Unable to decrypt');
         }
 
-        return $plaintext;
+        return self::getRSAESOAEP(
+            $key,
+            str_pad($ciphertext, $key->getModulusLength(), chr(0), STR_PAD_LEFT),
+            Hash::$hash_algorithm()
+        );
     }
 
     private static function convertIntegerToOctetString(BigInteger $x, int $xLen): string
@@ -174,7 +229,7 @@ final readonly class RSACrypt
      */
     private static function getRSAEP(RSAKey $key, BigInteger $m): BigInteger
     {
-        if ($m->compare(BigInteger::createFromDecimal(0)) < 0 || $m->compare($key->getModulus()) > 0) {
+        if ($m->compare(BigInteger::createFromDecimal(0)) < 0 || $m->compare($key->getModulus()) >= 0) {
             throw new RuntimeException();
         }
 
@@ -186,7 +241,7 @@ final readonly class RSACrypt
      */
     private static function getRSADP(RSAKey $key, BigInteger $c): BigInteger
     {
-        if ($c->compare(BigInteger::createFromDecimal(0)) < 0 || $c->compare($key->getModulus()) > 0) {
+        if ($c->compare(BigInteger::createFromDecimal(0)) < 0 || $c->compare($key->getModulus()) >= 0) {
             throw new RuntimeException();
         }
 
@@ -218,9 +273,9 @@ final readonly class RSACrypt
         $ps = str_repeat(chr(0), $key->getModulusLength() - $mLen - 2 * $hash->getLength() - 2);
         $db = $lHash . $ps . chr(1) . $m;
         $seed = random_bytes($hash->getLength());
-        $dbMask = self::getMGF1($seed, $key->getModulusLength() - $hash->getLength() - 1, $hash/*MGF*/);
+        $dbMask = self::getMGF1($seed, $key->getModulusLength() - $hash->getLength() - 1, $hash/* MGF */);
         $maskedDB = $db ^ $dbMask;
-        $seedMask = self::getMGF1($maskedDB, $hash->getLength(), $hash/*MGF*/);
+        $seedMask = self::getMGF1($maskedDB, $hash->getLength(), $hash/* MGF */);
         $maskedSeed = $seed ^ $seedMask;
         $em = chr(0) . $maskedSeed . $maskedDB;
 
@@ -241,9 +296,9 @@ final readonly class RSACrypt
         $lHash = $hash->hash('');
         $maskedSeed = substr($em, 1, $hash->getLength());
         $maskedDB = substr($em, $hash->getLength() + 1);
-        $seedMask = self::getMGF1($maskedDB, $hash->getLength(), $hash/*MGF*/);
+        $seedMask = self::getMGF1($maskedDB, $hash->getLength(), $hash/* MGF */);
         $seed = $maskedSeed ^ $seedMask;
-        $dbMask = self::getMGF1($seed, $key->getModulusLength() - $hash->getLength() - 1, $hash/*MGF*/);
+        $dbMask = self::getMGF1($seed, $key->getModulusLength() - $hash->getLength() - 1, $hash/* MGF */);
         $db = $maskedDB ^ $dbMask;
         $lHash2 = substr($db, 0, $hash->getLength());
         $m = substr($db, $hash->getLength());

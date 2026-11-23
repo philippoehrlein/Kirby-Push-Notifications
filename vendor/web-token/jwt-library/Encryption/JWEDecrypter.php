@@ -16,8 +16,15 @@ use Jose\Component\Encryption\Algorithm\KeyEncryption\KeyAgreement;
 use Jose\Component\Encryption\Algorithm\KeyEncryption\KeyAgreementWithKeyWrapping;
 use Jose\Component\Encryption\Algorithm\KeyEncryption\KeyEncryption;
 use Jose\Component\Encryption\Algorithm\KeyEncryption\KeyWrapping;
+use Jose\Component\Encryption\Algorithm\KeyEncryption\PBES2AESKW;
 use Jose\Component\Encryption\Algorithm\KeyEncryptionAlgorithm;
+use SensitiveParameter;
 use Throwable;
+use function count;
+use function func_num_args;
+use function intdiv;
+use function is_callable;
+use function is_int;
 use function is_string;
 use function sprintf;
 use function strlen;
@@ -66,21 +73,32 @@ class JWEDecrypter
      * @param JWE $jwe A JWE object to decrypt
      * @param JWK $jwk The key used to decrypt the input
      * @param int $recipient The recipient used to decrypt the token
+     * @param JWK|null $senderKey With a static key agreement, the public key of the sender, or the private key of the
+     *                             recipient when the key used to decrypt the input is the public key of the sender
      */
     public function decryptUsingKey(JWE &$jwe, JWK $jwk, int $recipient, ?JWK $senderKey = null): bool
     {
         $jwkset = new JWKSet([$jwk]);
+        $successJwk = null;
 
-        return $this->decryptUsingKeySet($jwe, $jwkset, $recipient, $senderKey);
+        return $this->decryptUsingKeySet($jwe, $jwkset, $recipient, $successJwk, $senderKey);
     }
 
     /**
      * This method will try to decrypt the given JWE and recipient using a JWKSet.
      *
+     * A key that cannot be used, or that does not decrypt the recipient, does not abort the decryption: the next key of
+     * the key set is tried and the reason of the failure is otherwise lost. A callable is accepted as an additional
+     * argument to observe those failures; it is called with every discarded Throwable. That argument is not part of the
+     * signature yet (it will be in 5.0.0) and is read with func_num_args()/func_get_arg(5), so that classes extending
+     * this one remain compatible.
+     *
      * @param JWE $jwe A JWE object to decrypt
      * @param JWKSet $jwkset The key set used to decrypt the input
      * @param JWK $jwk The key used to decrypt the token in case of success
      * @param int $recipient The recipient used to decrypt the token in case of success
+     * @param JWK|null $senderKey With a static key agreement, the public key of the sender, or the private key of the
+     *                             recipient when the key set holds the public keys of the senders
      */
     public function decryptUsingKeySet(
         JWE &$jwe,
@@ -89,6 +107,10 @@ class JWEDecrypter
         ?JWK &$jwk = null,
         ?JWK $senderKey = null
     ): bool {
+        $onError = func_num_args() >= 6 ? func_get_arg(5) : null;
+        if (! is_callable($onError)) {
+            $onError = null;
+        }
         if ($jwkset->count() === 0) {
             throw new InvalidArgumentException('No key in the key set.');
         }
@@ -99,7 +121,7 @@ class JWEDecrypter
             throw new InvalidArgumentException('The JWE does not contain any recipient.');
         }
 
-        $plaintext = $this->decryptRecipientKey($jwe, $jwkset, $recipient, $jwk, $senderKey);
+        $plaintext = $this->decryptRecipientKey($jwe, $jwkset, $recipient, $jwk, $senderKey, $onError);
         if ($plaintext !== null) {
             $jwe = $jwe->withPayload($plaintext);
 
@@ -109,23 +131,40 @@ class JWEDecrypter
         return false;
     }
 
+    /**
+     * The header parameter names of the shared protected header, the shared unprotected header and the
+     * per-recipient header must be disjoint (RFC 7516 section 7.2.1), as enforced by the JWEBuilder when the
+     * token is created. Otherwise an unprotected parameter is able to redefine a protected one. The headers
+     * are then merged in the same order as the JWEBuilder does, so that the protected header always wins.
+     *
+     * The shared unprotected header is never a valid source for "alg" and "enc": it is not covered by the
+     * AAD and, unlike the per-recipient header, nothing requires those parameters to be located there.
+     *
+     * @param callable(Throwable): void|null $onError
+     */
     private function decryptRecipientKey(
         JWE $jwe,
         JWKSet $jwkset,
         int $i,
         ?JWK &$successJwk = null,
-        ?JWK $senderKey = null
+        ?JWK $senderKey = null,
+        ?callable $onError = null
     ): ?string {
         $recipient = $jwe->getRecipient($i);
-        $completeHeader = array_merge(
-            $jwe->getSharedProtectedHeader(),
-            $jwe->getSharedHeader(),
-            $recipient->getHeader()
-        );
+        $sharedProtectedHeader = $jwe->getSharedProtectedHeader();
+        $sharedHeader = $jwe->getSharedHeader();
+        $recipientHeader = $recipient->getHeader();
+
+        $this->checkDuplicatedHeaderParameters($sharedProtectedHeader, $sharedHeader);
+        $this->checkDuplicatedHeaderParameters($sharedProtectedHeader, $recipientHeader);
+        $this->checkDuplicatedHeaderParameters($sharedHeader, $recipientHeader);
+
+        $completeHeader = array_merge($sharedHeader, $recipientHeader, $sharedProtectedHeader);
         $this->checkCompleteHeader($completeHeader);
 
-        $key_encryption_algorithm = $this->getKeyEncryptionAlgorithm($completeHeader);
-        $content_encryption_algorithm = $this->getContentEncryptionAlgorithm($completeHeader);
+        $protectedAndRecipientHeader = array_merge($recipientHeader, $sharedProtectedHeader);
+        $key_encryption_algorithm = $this->getKeyEncryptionAlgorithm($protectedAndRecipientHeader);
+        $content_encryption_algorithm = $this->getContentEncryptionAlgorithm($protectedAndRecipientHeader);
 
         $this->checkIvSize($jwe->getIV(), $content_encryption_algorithm->getIVSize());
 
@@ -137,6 +176,7 @@ class JWEDecrypter
                 } else {
                     KeyChecker::checkKeyAlgorithm($recipientKey, $content_encryption_algorithm->name());
                 }
+                $this->checkIterationCount($key_encryption_algorithm, $completeHeader, $jwe->countRecipients());
                 $cek = $this->decryptCEK(
                     $key_encryption_algorithm,
                     $content_encryption_algorithm,
@@ -150,8 +190,11 @@ class JWEDecrypter
                 $successJwk = $recipientKey;
 
                 return $payload;
-            } catch (Throwable) {
-                //We do nothing, we continue with other keys
+            } catch (Throwable $throwable) {
+                if ($onError !== null) {
+                    $onError($throwable);
+                }
+
                 continue;
             }
         }
@@ -159,16 +202,46 @@ class JWEDecrypter
         return null;
     }
 
+    /**
+     * A key obtained by key agreement is checked like a decrypted or unwrapped one, and a direct key must be at least
+     * that long: the content encryption algorithms pad a short key with zero bytes instead of rejecting it.
+     */
     private function checkCekSize(
+        #[SensitiveParameter]
         string $cek,
         KeyEncryptionAlgorithm $keyEncryptionAlgorithm,
         ContentEncryptionAlgorithm $algorithm
     ): void {
-        if ($keyEncryptionAlgorithm instanceof DirectEncryption || $keyEncryptionAlgorithm instanceof KeyAgreement) {
+        $cekSize = strlen($cek) * 8;
+        if ($keyEncryptionAlgorithm instanceof DirectEncryption && $cekSize > $algorithm->getCEKSize()) {
             return;
         }
-        if (strlen($cek) * 8 !== $algorithm->getCEKSize()) {
+        if ($cekSize !== $algorithm->getCEKSize()) {
             throw new InvalidArgumentException('Invalid CEK size');
+        }
+    }
+
+    /**
+     * The recipients of a token share the iteration count cap of PBES2: one token cannot request more key derivation
+     * work than a single recipient at the cap.
+     *
+     * @param array<mixed> $completeHeader
+     */
+    private function checkIterationCount(
+        KeyEncryptionAlgorithm $keyEncryptionAlgorithm,
+        array $completeHeader,
+        int $recipientCount
+    ): void {
+        if (! $keyEncryptionAlgorithm instanceof PBES2AESKW) {
+            return;
+        }
+        $maxCount = intdiv($keyEncryptionAlgorithm->getMaxCount(), $recipientCount);
+        $count = $completeHeader['p2c'] ?? null;
+        if (is_int($count) && $count > $maxCount) {
+            throw new InvalidArgumentException(sprintf(
+                'The header parameter "p2c" is too large. The maximum allowed value is %d.',
+                $maxCount
+            ));
         }
     }
 
@@ -191,9 +264,13 @@ class JWEDecrypter
         array $completeHeader
     ): string {
         if ($key_encryption_algorithm instanceof DirectEncryption) {
+            $this->checkEncryptedKeyIsEmpty($recipient);
+
             return $key_encryption_algorithm->getCEK($recipientKey);
         }
         if ($key_encryption_algorithm instanceof KeyAgreement) {
+            $this->checkEncryptedKeyIsEmpty($recipient);
+
             return $key_encryption_algorithm->getAgreementKey(
                 $content_encryption_algorithm->getCEKSize(),
                 $content_encryption_algorithm->name(),
@@ -211,26 +288,47 @@ class JWEDecrypter
                 $completeHeader
             );
         }
+        // The size of the key expected by the content encryption algorithm is passed as an additional
+        // argument. It is not part of the interfaces yet (it will be in 5.0.0): implementations that do not
+        // expect it simply ignore it, the others read it with func_num_args()/func_get_arg(3).
         if ($key_encryption_algorithm instanceof KeyEncryption) {
+            // @phpstan-ignore arguments.count (the fourth argument will be part of the interface in 5.0.0)
             return $key_encryption_algorithm->decryptKey(
                 $recipientKey,
                 $recipient->getEncryptedKey() ?? '',
-                $completeHeader
+                $completeHeader,
+                $content_encryption_algorithm->getCEKSize()
             );
         }
         if ($key_encryption_algorithm instanceof KeyWrapping) {
+            // @phpstan-ignore arguments.count (the fourth argument will be part of the interface in 5.0.0)
             return $key_encryption_algorithm->unwrapKey(
                 $recipientKey,
                 $recipient->getEncryptedKey() ?? '',
-                $completeHeader
+                $completeHeader,
+                $content_encryption_algorithm->getCEKSize()
             );
         }
 
         throw new InvalidArgumentException('Unsupported CEK generation');
     }
 
+    /**
+     * Direct encryption and direct key agreement transport no key (RFC 7516, section 5.2, step 10). The authentication
+     * tag does not cover the encrypted key, so nothing else rejects a token in which it was filled.
+     */
+    private function checkEncryptedKeyIsEmpty(Recipient $recipient): void
+    {
+        if (($recipient->getEncryptedKey() ?? '') !== '') {
+            throw new InvalidArgumentException(
+                'The encrypted key must be empty with direct encryption or direct key agreement.'
+            );
+        }
+    }
+
     private function decryptPayload(
         JWE $jwe,
+        #[SensitiveParameter]
         string $cek,
         ContentEncryptionAlgorithm $content_encryption_algorithm,
     ): string {
@@ -253,29 +351,52 @@ class JWEDecrypter
         }
     }
 
-    private function getKeyEncryptionAlgorithm(array $completeHeaders): KeyEncryptionAlgorithm
+    private function getKeyEncryptionAlgorithm(array $header): KeyEncryptionAlgorithm
     {
-        $key_encryption_algorithm = $this->keyEncryptionAlgorithmManager->get($completeHeaders['alg']);
+        $alg = $header['alg'] ?? null;
+        if (! is_string($alg) || $alg === '') {
+            throw new InvalidArgumentException(
+                'The "alg" parameter must be a non-empty string set in the protected header or in the recipient header.'
+            );
+        }
+        $key_encryption_algorithm = $this->keyEncryptionAlgorithmManager->get($alg);
         if (! $key_encryption_algorithm instanceof KeyEncryptionAlgorithm) {
             throw new InvalidArgumentException(sprintf(
                 'The key encryption algorithm "%s" is not supported or does not implement KeyEncryptionAlgorithm interface.',
-                $completeHeaders['alg']
+                $alg
             ));
         }
 
         return $key_encryption_algorithm;
     }
 
-    private function getContentEncryptionAlgorithm(array $completeHeader): ContentEncryptionAlgorithm
+    private function getContentEncryptionAlgorithm(array $header): ContentEncryptionAlgorithm
     {
-        $content_encryption_algorithm = $this->contentEncryptionAlgorithmManager->get($completeHeader['enc']);
+        $enc = $header['enc'] ?? null;
+        if (! is_string($enc) || $enc === '') {
+            throw new InvalidArgumentException(
+                'The "enc" parameter must be a non-empty string set in the protected header or in the recipient header.'
+            );
+        }
+        $content_encryption_algorithm = $this->contentEncryptionAlgorithmManager->get($enc);
         if (! $content_encryption_algorithm instanceof ContentEncryptionAlgorithm) {
             throw new InvalidArgumentException(sprintf(
-                'The key encryption algorithm "%s" is not supported or does not implement the ContentEncryption interface.',
-                $completeHeader['enc']
+                'The content encryption algorithm "%s" is not supported or does not implement the ContentEncryption interface.',
+                $enc
             ));
         }
 
         return $content_encryption_algorithm;
+    }
+
+    private function checkDuplicatedHeaderParameters(array $header1, array $header2): void
+    {
+        $inter = array_intersect_key($header1, $header2);
+        if (count($inter) !== 0) {
+            throw new InvalidArgumentException(sprintf(
+                'The header contains duplicated entries: %s.',
+                implode(', ', array_keys($inter))
+            ));
+        }
     }
 }

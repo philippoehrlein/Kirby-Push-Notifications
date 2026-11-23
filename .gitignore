@@ -24,6 +24,7 @@ ideas.md
 /keys/*
 
 # playground
+/playground/vendor/
 /playground/site/push-notifications/*
 /playground/public/media/*
 /playground/storage/accounts/*

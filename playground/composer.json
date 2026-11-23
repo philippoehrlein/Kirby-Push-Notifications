@@ -1,0 +1,16 @@
+{
+  "name": "philippoehrlein/kirby-push-notifications-playground",
+  "description": "Local Kirby playground for the Push Notifications plugin",
+  "require": {
+    "php": ">=8.3.0",
+    "getkirby/cms": "5.6.4"
+  },
+  "config": {
+    "allow-plugins": {
+      "getkirby/composer-installer": true
+    }
+  },
+  "extra": {
+    "kirby-cms-path": false
+  }
+}

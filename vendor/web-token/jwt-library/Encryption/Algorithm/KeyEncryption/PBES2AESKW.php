@@ -11,17 +11,22 @@ use AESKW\Wrapper as WrapperInterface;
 use InvalidArgumentException;
 use Jose\Component\Core\JWK;
 use Jose\Component\Core\Util\Base64UrlSafe;
+use Jose\Component\Encryption\Algorithm\KeyEncryption\Util\AESKeyWrap;
 use Override;
 use RuntimeException;
 use function in_array;
 use function is_int;
 use function is_string;
+use function sprintf;
 
 abstract readonly class PBES2AESKW implements KeyWrapping
 {
+    public const DEFAULT_MAX_COUNT = 1_000_000;
+
     public function __construct(
-        private readonly int $salt_size = 64,
-        private readonly int $nb_count = 4096
+        private int $salt_size = 64,
+        private int $nb_count = 4096,
+        private int $max_count = self::DEFAULT_MAX_COUNT
     ) {
         if (! interface_exists(WrapperInterface::class)) {
             throw new RuntimeException('Please install "spomky-labs/aes-key-wrap" to use AES-KW algorithms');
@@ -32,6 +37,11 @@ abstract readonly class PBES2AESKW implements KeyWrapping
     public function allowedKeyTypes(): array
     {
         return ['oct'];
+    }
+
+    public function getMaxCount(): int
+    {
+        return $this->max_count;
     }
 
     /**
@@ -84,7 +94,7 @@ abstract readonly class PBES2AESKW implements KeyWrapping
 
         $derived_key = hash_pbkdf2($hash_algorithm, $password, $salt, $count, $key_size, true);
 
-        return $wrapper::unwrap($derived_key, $encrypted_cek);
+        return AESKeyWrap::unwrap($wrapper, $derived_key, $encrypted_cek);
     }
 
     #[Override]
@@ -138,6 +148,12 @@ abstract readonly class PBES2AESKW implements KeyWrapping
         }
         if (! is_int($header['p2c']) || $header['p2c'] <= 0) {
             throw new InvalidArgumentException('The header parameter "p2c" is not valid.');
+        }
+        if ($header['p2c'] > $this->max_count) {
+            throw new InvalidArgumentException(sprintf(
+                'The header parameter "p2c" is too large. The maximum allowed value is %d.',
+                $this->max_count
+            ));
         }
     }
 

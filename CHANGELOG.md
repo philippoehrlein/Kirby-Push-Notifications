@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.1] - 2026-11-23
+
+### Fixed
+- Keep Panel and Website channel selections separate in the subscription dialog to prevent `[unknown]` options.
+
+### Changed
+- Give the Playground its own Composer dependencies and lockfile. GitHub downloads include the plugin's runtime dependencies.
+- Redirect the Playground home URL to the Panel.
+
+### Added
+- Automated tests for channel selection, SQLite subscriptions, and notification recipient filtering.
+
 ## [1.2.0] - 2026-05-29
 
 ### Added

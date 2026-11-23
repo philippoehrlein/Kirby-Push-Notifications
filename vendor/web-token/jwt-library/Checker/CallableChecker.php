@@ -18,7 +18,7 @@ final class CallableChecker implements ClaimChecker, HeaderChecker
 {
     /**
      * @param string     $key      The claim or header parameter name to check.
-     * @param callable(mixed $value): bool $callable The callable function that will be invoked.
+     * @param callable(mixed $value): bool $callable The callable function that will be invoked. Any result other than true rejects the value.
      */
     public function __construct(
         private readonly string $key,

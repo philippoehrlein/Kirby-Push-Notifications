@@ -9,6 +9,7 @@ use Jose\Component\Core\Util\BigInteger;
 use Jose\Component\Core\Util\Hash;
 use Jose\Component\Core\Util\RSAKey;
 use RuntimeException;
+use SensitiveParameter;
 use function chr;
 use function extension_loaded;
 use function ord;
@@ -44,7 +45,7 @@ final readonly class RSA
                     throw new RuntimeException('Please install the OpenSSL extension');
                 }
                 $result = openssl_sign($message, $signature, $key->toPEM(), $hash);
-                if ($result !== true) {
+                if (! $result) {
                     throw new RuntimeException('Unable to sign the data');
                 }
 
@@ -73,8 +74,14 @@ final readonly class RSA
         return $result;
     }
 
-    public static function verify(RSAKey $key, string $message, string $signature, string $hash, int $mode): bool
-    {
+    public static function verify(
+        RSAKey $key,
+        #[SensitiveParameter]
+        string $message,
+        string $signature,
+        string $hash,
+        int $mode
+    ): bool {
         switch ($mode) {
             case self::SIGNATURE_PSS:
                 return self::verifyWithPSS($key, $message, $signature, $hash);
@@ -91,8 +98,13 @@ final readonly class RSA
     /**
      * Verifies a signature.
      */
-    public static function verifyWithPSS(RSAKey $key, string $message, string $signature, string $hash): bool
-    {
+    public static function verifyWithPSS(
+        RSAKey $key,
+        #[SensitiveParameter]
+        string $message,
+        string $signature,
+        string $hash
+    ): bool {
         if (strlen($signature) !== $key->getModulusLength()) {
             throw new RuntimeException();
         }
@@ -157,7 +169,7 @@ final readonly class RSA
     /**
      * EMSA-PSS-VERIFY.
      */
-    private static function verifyEMSAPSS(string $m, string $em, int $emBits, Hash $hash): bool
+    private static function verifyEMSAPSS(#[SensitiveParameter] string $m, string $em, int $emBits, Hash $hash): bool
     {
         $emLen = ($emBits + 1) >> 3;
         $sLen = $hash->getLength();
@@ -176,7 +188,7 @@ final readonly class RSA
         if ((~$maskedDB[0] & $temp) !== $temp) {
             throw new InvalidArgumentException();
         }
-        $dbMask = self::getMGF1($h, $emLen - $hash->getLength() - 1, $hash/*MGF*/);
+        $dbMask = self::getMGF1($h, $emLen - $hash->getLength() - 1, $hash/* MGF */);
         $db = $maskedDB ^ $dbMask;
         $db[0] = ~chr((0xFF << $shiftBits) & 0xFF) & $db[0];
         $temp = $emLen - $hash->getLength() - $sLen - 2;

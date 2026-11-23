@@ -1,7 +1,7 @@
 # Kirby Push Notifications
 
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-1.2.0-blue)
+![Version](https://img.shields.io/badge/version-1.2.1-blue)
 
 **Kirby Push Notifications** is a plugin for [Kirby CMS](https://getkirby.com/) that adds Web Push support. Visitors can subscribe to channels (e.g. “Notes”, “News”), and you can send notifications from the Panel or via hooks. Subscriptions are stored in SQLite; sending is powered by the [minishlink/web-push](https://github.com/web-push-libs/web-push-php) library with VAPID authentication.
 
@@ -35,6 +35,28 @@ composer require philippoehrlein/kirby-push-notifications
 2. Copy the `kirby-push-notifications` folder into `site/plugins/`.
 
 The plugin ships with its own `vendor/`, so no `composer install` in the plugin folder is needed. 
+
+## Local playground
+
+From a Git checkout, run these commands in the plugin root:
+
+```sh
+composer install --working-dir=playground
+composer dev
+```
+
+Open [the playground panel](http://localhost:8000/panel). The playground installs Kirby into `playground/vendor/` using its own lockfile and loads the plugin from the checkout.
+
+### Automated tests
+
+With Node.js 22 or later, PHP with PDO SQLite, and the Playground Composer dependencies installed, run:
+
+```sh
+npm ci --legacy-peer-deps
+npm test
+```
+
+The suite checks channel selection, SQLite subscriptions, and notification recipients without sending any push messages.
 
 ## Configuration
 

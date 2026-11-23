@@ -2,7 +2,7 @@
 
 $base = dirname(__DIR__);
 
-require dirname($base) . '/vendor/autoload.php';
+require $base . '/vendor/autoload.php';
 
 $kirby = new \Kirby\Cms\App([
   'roots' => [
