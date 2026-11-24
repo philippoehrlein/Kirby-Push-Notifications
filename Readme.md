@@ -1,7 +1,7 @@
 # Kirby Push Notifications
 
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-2.0.0--beta.1-blue)
+![Version](https://img.shields.io/badge/version-2.0.0-blue)
 
 **Kirby Push Notifications** is a plugin for [Kirby CMS](https://getkirby.com/) that adds Web Push support. Visitors can subscribe to channels (e.g. “Notes”, “News”), and you can send notifications from the Panel or via hooks. Subscriptions are stored in SQLite; sending is powered by the [minishlink/web-push](https://github.com/web-push-libs/web-push-php) library with VAPID authentication.
 
@@ -15,7 +15,7 @@
 
 ## Requirements
 
-- Kirby 6.0.0-rc.3 or later in the Kirby 6 release line. For Kirby 5, use plugin version 1.2.1.
+- Kirby 6.x
 - PHP 8.3+
 - HTTPS (required for Web Push)
 
@@ -26,7 +26,15 @@
 In your site root:
 
 ```bash
-composer require philippoehrlein/kirby-push-notifications:2.0.0-beta.1
+composer require philippoehrlein/kirby-push-notifications
+```
+
+### Kirby 5
+
+Use the 1.x release line for Kirby 5. The source is maintained on the [support/kirby4-5 branch](https://github.com/philippoehrlein/Kirby-Push-Notifications/tree/support/kirby4-5).
+
+```bash
+composer require 'philippoehrlein/kirby-push-notifications:^1.2'
 ```
 
 ### Manual installation

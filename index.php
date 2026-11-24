@@ -17,7 +17,7 @@ $plugin = [
   'routes' => require __DIR__ . '/config/routes.php',
   'snippets' => require __DIR__ . '/config/snippets.php',
   'translations' => TranslationHelper::loadTranslations(PathHelper::translationDir()),
-  'version' => '2.0.0-beta.1',
+  'version' => '2.0.0',
 ];
 
 Kirby::plugin('philippoehrlein/push-notifications', $plugin);

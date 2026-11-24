@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.0] - 2026-11-24
+
+### Changed
+- Support the stable Kirby 6 release and its Vue 3 Panel. The playground uses Kirby 6.0.0.
+- Keep the Kirby 5 release line on `support/kirby4-5`.
+
 ## [2.0.0-beta.1] - 2026-11-23
 
 ### Changed
